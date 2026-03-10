@@ -1,0 +1,33 @@
+#!/bin/bash
+# Kids Vibe Code - Launcher script
+#
+# Usage:
+#   kids-vibe-code                    # Start in current directory
+#   kids-vibe-code /path/to/project   # Start in specified project directory
+#
+# Installation:
+#   1. Copy this script somewhere on your PATH, e.g.:
+#      cp tools/kids-vibe-code /usr/local/bin/
+#      chmod +x /usr/local/bin/kids-vibe-code
+#
+#   2. Or create an alias in your shell profile:
+#      alias kids-vibe-code='/path/to/kids-vibe-code-games/tools/kids-vibe-code'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PERSONA_FILE="$SCRIPT_DIR/kids-vibe-persona.txt"
+
+# Allow specifying a project directory as argument
+if [ -n "$1" ] && [ -d "$1" ]; then
+    PROJECT_DIR="$1"
+    cd "$PROJECT_DIR" || exit 1
+fi
+
+# Check that the persona file exists
+if [ ! -f "$PERSONA_FILE" ]; then
+    echo "Error: Persona file not found at $PERSONA_FILE"
+    echo "Make sure kids-vibe-persona.txt is in the same directory as this script."
+    exit 1
+fi
+
+# Launch Claude Code with the kids persona appended to the default system prompt
+exec claude --append-system-prompt-file "$PERSONA_FILE"

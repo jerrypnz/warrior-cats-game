@@ -48,12 +48,38 @@ You should see the usage instructions for the art processing tool.
 
 ## How Kids Use This
 
-1. Open a terminal in the project folder
-2. Start Claude Code
-3. The kid describes what they want: *"Make a game where I'm a ninja jumping on clouds!"*
-4. Claude creates/updates the Godot project
-5. The kid presses Play in the Godot editor to test
-6. Repeat!
+### Option A: Use the launcher script (recommended)
+
+Install the launcher once:
+```bash
+cp tools/kids-vibe-code /usr/local/bin/
+chmod +x /usr/local/bin/kids-vibe-code
+```
+
+Then kids just run:
+```bash
+cd /path/to/kids-vibe-code-games
+kids-vibe-code
+```
+
+This launches Claude in a kid-friendly "game-making buddy" persona that:
+- Only helps with game creation (won't do homework, web searches, etc.)
+- Uses simple, encouraging language
+- Makes all technical decisions automatically
+- Stays in character even if asked to "act normal"
+
+### Option B: Use regular Claude Code
+
+If you prefer, kids can also just run `claude` in the project folder.
+The `CLAUDE.md` file will guide Claude's behavior, though the persona
+won't be as locked-in as with the launcher script.
+
+### Either way, the workflow is:
+
+1. Kid describes what they want: *"Make a game where I'm a ninja jumping on clouds!"*
+2. Claude creates/updates the Godot project
+3. The kid presses Play in the Godot editor to test
+4. Repeat!
 
 ## Setting Up HTML5 Export (Optional, for Sharing)
 
