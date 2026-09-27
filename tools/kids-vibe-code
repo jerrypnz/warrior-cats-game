@@ -2,32 +2,37 @@
 # Kids Vibe Code - Launcher script
 #
 # Usage:
-#   kids-vibe-code                    # Start in current directory
-#   kids-vibe-code /path/to/project   # Start in specified project directory
+#   kids-vibe-code                    # Open the game project this script lives in
+#   kids-vibe-code /path/to/project   # Open a different copy of the project
 #
-# Installation:
-#   1. Copy this script somewhere on your PATH, e.g.:
-#      cp tools/kids-vibe-code /usr/local/bin/
-#      chmod +x /usr/local/bin/kids-vibe-code
-#
-#   2. Or create an alias in your shell profile:
-#      alias kids-vibe-code='/path/to/kids-vibe-code-games/tools/kids-vibe-code'
+# Installation (symlink it, don't copy, so it can still find the project):
+#   mkdir -p ~/.local/bin
+#   ln -sf "$PWD/tools/kids-vibe-code" ~/.local/bin/kids-vibe-code
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PERSONA_FILE="$SCRIPT_DIR/kids-vibe-persona.txt"
+# Follow symlinks to find where this script really lives
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 
-# Allow specifying a project directory as argument
-if [ -n "$1" ] && [ -d "$1" ]; then
-    PROJECT_DIR="$1"
-    cd "$PROJECT_DIR" || exit 1
-fi
+PROJECT_DIR="${1:-$(dirname "$SCRIPT_DIR")}"
+PERSONA_FILE="$PROJECT_DIR/tools/kids-vibe-persona.txt"
 
-# Check that the persona file exists
-if [ ! -f "$PERSONA_FILE" ]; then
-    echo "Error: Persona file not found at $PERSONA_FILE"
-    echo "Make sure kids-vibe-persona.txt is in the same directory as this script."
+if [ ! -f "$PROJECT_DIR/CLAUDE.md" ] || [ ! -f "$PERSONA_FILE" ]; then
+    echo "Error: $PROJECT_DIR doesn't look like a kids-vibe-code-games project"
+    echo "(expected CLAUDE.md and tools/kids-vibe-persona.txt inside it)."
     exit 1
 fi
+
+if ! command -v claude >/dev/null 2>&1; then
+    echo "Error: Claude Code isn't installed (the 'claude' command wasn't found)."
+    exit 1
+fi
+
+cd "$PROJECT_DIR" || exit 1
 
 # Launch Claude Code with the kids persona appended to the default system prompt
 exec claude --append-system-prompt-file "$PERSONA_FILE"

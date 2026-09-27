@@ -9,14 +9,17 @@ This guide helps you set up the environment so kids can start creating games!
    - Install for your platform (macOS, Windows, or Linux)
    - No account required
 
-2. **Python 3.8+** (for processing kid drawings)
+2. **Python 3.9+** (for processing drawings and checking the game)
    - macOS: Usually pre-installed. Check with `python3 --version`
    - Windows: Download from https://python.org/downloads
 
-3. **Pillow** (Python image processing library)
+3. **Pillow and numpy** (Python image processing libraries)
    ```
-   pip install Pillow
+   pip install Pillow numpy
    ```
+
+   The `godot` command must also work from a terminal so Claude can test the game.
+   On macOS: `brew install --cask godot`, or set `GODOT=/Applications/Godot.app/Contents/MacOS/Godot`.
 
 4. **Claude Code** (the AI assistant)
    - Should already be installed if you're reading this!
@@ -36,29 +39,46 @@ In a terminal, run:
 ```
 cd /path/to/kids-vibe-code-games
 python3 tools/process_art.py --help
+python3 -m unittest discover tools
+python3 tools/check_game.py
 ```
 
-You should see the usage instructions for the art processing tool.
+You should see the art tool's usage, the tests passing, and (until the first game exists)
+a message that no main scene is set yet — that means Godot was found and works.
 
-### 3. Set Up for Drawing Import
+### 3. What Claude Is Allowed to Do Without Asking
+
+`.claude/settings.json` sets this project up so a kid isn't faced with permission prompts
+for normal game-making:
+
+- File edits inside this folder are auto-approved
+- The project's own tools (`tools/*.py`) and git save points (add/commit/revert/tag) are allowed
+- Web search and web fetching are **blocked**
+
+Anything else (installing software, other commands) still asks first — so a parent should
+be nearby, at least for the first few sessions. Edit that file to tighten or loosen this.
+
+### 4. Set Up for Drawing Import
 
 - Have white paper and dark markers/crayons ready
-- Use a phone camera or scanner to capture drawings
-- Save images to the `my-drawings/` folder (JPG or PNG)
+- Use a phone camera or scanner to capture drawings: straight from above, in a bright
+  room, without the phone's shadow on the page
+- Save images to the `my-drawings/` folder (JPG or PNG). These originals are git-ignored,
+  because phone photos can include GPS location and kids often write their name on the page.
 
 ## How Kids Use This
 
 ### Option A: Use the launcher script (recommended)
 
-Install the launcher once:
+Install the launcher once (a symlink, so it keeps finding the project):
 ```bash
-cp tools/kids-vibe-code /usr/local/bin/
-chmod +x /usr/local/bin/kids-vibe-code
+mkdir -p ~/.local/bin
+ln -sf "$PWD/tools/kids-vibe-code" ~/.local/bin/kids-vibe-code
 ```
+(`~/.local/bin` must be on your `PATH`.)
 
-Then kids just run:
+Then kids just run, from anywhere:
 ```bash
-cd /path/to/kids-vibe-code-games
 kids-vibe-code
 ```
 
@@ -87,14 +107,17 @@ To let kids share their games in a web browser:
 
 1. In Godot, go to Editor > Manage Export Templates
 2. Click "Download and Install" to get the export templates
-3. Claude will handle creating the export preset configuration
+3. Export with Project > Export > Web (the preset is already set up), or ask Claude to
 
-The exported game will be a set of HTML files that can be opened in any browser
-or hosted on a simple web server.
+The export is a folder of files (HTML, JavaScript, WebAssembly). It has to be served
+over http — double-clicking `index.html` won't work. To try it locally:
+`cd game/export/web && python3 -m http.server`, then open http://localhost:8000.
+To share it, upload the folder to itch.io or any static web host. The preset has
+threads turned off, so no special server configuration is needed.
 
 ## Tips for Supervising
 
-- **Read history.md** to see what the kid has been building
+- **Read history.md** to see what the kid has been building, and `git log` for every save point
 - The CLAUDE.md file contains safety rules — Claude will refuse inappropriate content
 - If something breaks, just tell Claude "the game is broken, can you fix it?"
 - Kids can draw multiple characters on one page — just tell them to leave space between drawings
@@ -109,8 +132,13 @@ or hosted on a simple web server.
 **"My drawing looks weird in the game"**
 - Draw with darker lines (thick markers work best)
 - Make sure the photo is well-lit and not blurry
-- Try: `python3 tools/process_art.py my-drawings/file.jpg --threshold 200`
-  (lower threshold = more aggressive background removal)
+- Keep the phone's shadow off the page, and take the photo from straight above
+- Look at the preview in `.previews/` to see what the tool cut out
+- Try: `python3 tools/process_art.py my-drawings/file.jpg --sensitivity 1.5` for faint
+  drawings, or `--sensitivity 0.7` if smudges are showing up
+
+**"There's no sound"**
+- Run `python3 tools/make_sounds.py` to (re)create the starter sounds
 
 **"Claude said something weird"**
 - Check history.md for context on what happened

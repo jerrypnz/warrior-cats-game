@@ -1,8 +1,18 @@
-# Godot
+# Godot (commit *.import files next to assets; Godot 4 needs them)
 game/.godot/
-game/.import/
 game/export/
-*.import
+
+# Photos of drawings can carry the camera's GPS location and kids often write
+# their name on the page, so keep the originals out of git. The processed
+# sprites in game/assets/sprites/ are clean and are committed.
+my-drawings/*
+!my-drawings/.gitkeep
+
+# Screenshots and previews made by the tools
+.previews/
+
+# Claude Code personal settings
+.claude/settings.local.json
 
 # Python
 __pycache__/
