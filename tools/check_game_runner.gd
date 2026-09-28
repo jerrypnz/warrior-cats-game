@@ -54,16 +54,21 @@ func _process(delta: float) -> bool:
 	if stopped:
 		return true
 	elapsed += delta
+	# An action can have several windows (taps); it is down if any of them is active.
+	var wanted := {}
 	for hold in holds:
-		var active: bool = elapsed >= hold[1] and elapsed < hold[2]
+		var in_window: bool = elapsed >= hold[1] and elapsed < hold[2]
+		wanted[hold[0]] = wanted.get(hold[0], false) or in_window
+	for action in wanted:
+		var active: bool = wanted[action]
 		# Re-press every frame while active: Godot releases held actions when the window
 		# loses focus, which happens when the screenshot window opens behind other apps.
-		if (active and not Input.is_action_pressed(hold[0])) or (not active and held.get(hold[0], false)):
+		if (active and not Input.is_action_pressed(action)) or (not active and held.get(action, false)):
 			var event := InputEventAction.new()
-			event.action = hold[0]
+			event.action = action
 			event.pressed = active
 			Input.parse_input_event(event)
-		held[hold[0]] = active
+		held[action] = active
 	if elapsed < seconds:
 		return false
 
