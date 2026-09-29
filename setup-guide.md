@@ -70,17 +70,20 @@ be nearby, at least for the first few sessions. Edit that file to tighten or loo
 
 ### Option A: Use the launcher script (recommended)
 
-Install the launcher once (a symlink, so it keeps finding the project):
+Install the launcher once:
 ```bash
 mkdir -p ~/.local/bin
 ln -sf "$PWD/tools/kids-vibe-code" ~/.local/bin/kids-vibe-code
 ```
 (`~/.local/bin` must be on your `PATH`.)
 
-Then kids just run, from anywhere:
+Then kids run it from inside their game's project folder:
 ```bash
+cd /path/to/their-game
 kids-vibe-code
 ```
+The launcher always uses the current folder as the project, so one install works for
+every copy — give each game its own copy of this project and launch from there.
 
 This launches Claude in a kid-friendly "game-making buddy" persona that:
 - Only helps with game creation (won't do homework, web searches, etc.)

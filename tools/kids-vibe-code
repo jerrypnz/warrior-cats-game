@@ -1,29 +1,24 @@
 #!/bin/bash
 # Kids Vibe Code - Launcher script
 #
-# Usage:
-#   kids-vibe-code                    # Open the game project this script lives in
-#   kids-vibe-code /path/to/project   # Open a different copy of the project
+# Usage (from inside a game project folder):
+#   cd /path/to/project
+#   kids-vibe-code
 #
-# Installation (symlink it, don't copy, so it can still find the project):
+# The current directory is always used as the project, so one installed launcher
+# works for every copy of the project.
+#
+# Installation:
 #   mkdir -p ~/.local/bin
 #   ln -sf "$PWD/tools/kids-vibe-code" ~/.local/bin/kids-vibe-code
 
-# Follow symlinks to find where this script really lives
-SOURCE="$0"
-while [ -L "$SOURCE" ]; do
-    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-    SOURCE="$(readlink "$SOURCE")"
-    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-
-PROJECT_DIR="${1:-$(dirname "$SCRIPT_DIR")}"
+PROJECT_DIR="$PWD"
 PERSONA_FILE="$PROJECT_DIR/tools/kids-vibe-persona.txt"
 
 if [ ! -f "$PROJECT_DIR/CLAUDE.md" ] || [ ! -f "$PERSONA_FILE" ]; then
     echo "Error: $PROJECT_DIR doesn't look like a kids-vibe-code-games project"
     echo "(expected CLAUDE.md and tools/kids-vibe-persona.txt inside it)."
+    echo "Run this from inside the game project folder."
     exit 1
 fi
 
@@ -31,8 +26,6 @@ if ! command -v claude >/dev/null 2>&1; then
     echo "Error: Claude Code isn't installed (the 'claude' command wasn't found)."
     exit 1
 fi
-
-cd "$PROJECT_DIR" || exit 1
 
 # Launch Claude Code with the kids persona appended to the default system prompt
 exec claude --append-system-prompt-file "$PERSONA_FILE"
