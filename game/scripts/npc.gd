@@ -17,7 +17,15 @@ var has_news := false:  # shows a bouncing "!" above their head
 var _target := Vector2.ZERO
 var _wait := 0.0
 var _prompt: Label
+var _name_label: Label
 var _time := 0.0
+var _walking := false
+
+
+## Makes one of the story's cats (from GameState.CATS)
+static func make(cat_name: String, face := 1.0) -> Npc:
+	var data: Dictionary = GameState.CATS[cat_name]
+	return Npc.new().setup(cat_name, data, data.get("size", 1.0), face)
 
 
 func setup(cat_name: String, look: Dictionary, cat_size := 1.0, face := 1.0) -> Npc:
@@ -28,11 +36,11 @@ func setup(cat_name: String, look: Dictionary, cat_size := 1.0, face := 1.0) -> 
 	cat.facing = face
 	cat.show_behind_parent = true  # so the "!" bubble is drawn on top of the cat
 	add_child(cat)
-	var label := Fx.make_label(cat_name, 22, Color.WHITE, 6)
-	label.size = Vector2(300, 32)
-	label.position = Vector2(-150, -112 * cat_size - 30)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(label)
+	_name_label = Fx.make_label(cat_name, 22, Color.WHITE, 6)
+	_name_label.size = Vector2(300, 32)
+	_name_label.position = Vector2(-150, -112 * cat_size - 30)
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_name_label)
 	_prompt = Fx.make_label("SPACE = talk", 22, Color("9be37a"), 6)
 	_prompt.size = Vector2(300, 32)
 	_prompt.position = Vector2(-150, 6)
@@ -40,6 +48,11 @@ func setup(cat_name: String, look: Dictionary, cat_size := 1.0, face := 1.0) -> 
 	_prompt.visible = false
 	add_child(_prompt)
 	return self
+
+
+func rename(new_name: String) -> void:
+	npc_name = new_name
+	_name_label.text = new_name
 
 
 func talk_position() -> Vector2:
@@ -59,6 +72,9 @@ func _process(delta: float) -> void:
 	_time += delta
 	if has_news:
 		queue_redraw()
+	if _walking:
+		cat.walk_amount = move_toward(cat.walk_amount, 1.0, delta * 6.0)
+		return
 	if wander_area.size == Vector2.ZERO or _prompt.visible:
 		cat.walk_amount = move_toward(cat.walk_amount, 0.0, delta * 5.0)
 		return
@@ -82,6 +98,18 @@ func _process(delta: float) -> void:
 	face_toward(global_position + to_target)
 	if hops:
 		cat.lift = absf(sin(_time * 9.0)) * 14.0
+
+
+## Walk somewhere (for cutscenes). You can "await" this.
+func walk_to(target: Vector2, walk_speed := 170.0) -> void:
+	if absf(target.x - position.x) > 5:
+		cat.facing = signf(target.x - position.x)
+	_walking = true
+	var t := create_tween()
+	t.tween_property(self, "position", target, maxf(0.1, position.distance_to(target) / walk_speed))
+	await t.finished
+	_walking = false
+	cat.walk_amount = 0.0
 
 
 func _draw() -> void:

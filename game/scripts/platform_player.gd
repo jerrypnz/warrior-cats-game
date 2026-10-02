@@ -11,6 +11,7 @@ const COYOTE_TIME := 0.12  # you can still jump just after running off an edge
 const JUMP_BUFFER := 0.15  # pressing jump just before landing still counts
 
 var cat: Cat
+var name_label: Label
 var frozen := false
 var _coyote := 0.0
 var _buffer := 0.0
@@ -27,12 +28,13 @@ func _ready() -> void:
 	cat = Cat.new()
 	cat.set_look(GameState.look())
 	cat.size = GameState.cat_size()
+	cat.collar = GameState.is_kittypet()
 	add_child(cat)
-	var label := Fx.make_label(GameState.cat_name(), 24, Color("ffd966"), 6)
-	label.size = Vector2(300, 36)
-	label.position = Vector2(-150, -112 * cat.size - 34)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(label)
+	name_label = Fx.make_label(GameState.cat_name(), 24, Color("ffd966"), 6)
+	name_label.size = Vector2(300, 36)
+	name_label.position = Vector2(-150, -112 * cat.size - 34)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(name_label)
 
 
 func _physics_process(delta: float) -> void:

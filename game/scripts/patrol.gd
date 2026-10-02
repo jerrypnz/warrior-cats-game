@@ -1,12 +1,13 @@
 extends Node2D
-## Border patrol training: run along the edge of the territory, jump over streams and logs,
-## and leave scent markers at the glowing trees.
+## Border patrol with Lionheart, Graypaw and Ravenpaw: run through the territory, jump over
+## streams and logs, and leave scent markers at ThunderClan's special places.
 
 const GROUND_Y := 600.0
-const LEVEL_END := 4400.0
+const LEVEL_END := 4700.0
 const FINISH_X := 4220.0
+const RIVER := Vector2(4360, 4520)  # RiverClan's river at the end, too wide to jump
 # Solid ground pieces [start x, end x]. The gaps between them are streams.
-const GROUND := [[0, 900], [1050, 1850], [2000, 2900], [3050, 4400]]
+const GROUND := [[0, 900], [1050, 1850], [2000, 2900], [3050, 4360], [4520, 4700]]
 # Logs and rocks to jump over: [x, y, width, height, "log" or "rock"]
 const OBSTACLES := [
 	[450, 555, 150, 45, "log"],
@@ -18,8 +19,18 @@ const OBSTACLES := [
 	[3700, 520, 120, 80, "rock"],
 ]
 const MARKERS := [700, 1700, 2450, 3300, 3950]
+const PLACES := [
+	["Tallpines", "Ravenpaw", "These are the Tallpines. They're SO tall!"],
+	["Sunningrocks", "Lionheart", "Sunningrocks! RiverClan wants them, but they're ours."],
+	["Snakerocks", "Graypaw", "Snakerocks... watch out for adders!"],
+	["Owl Tree", "Ravenpaw", "That's the Owl Tree. Hoo hoo!"],
+	["Fourtrees", "Lionheart", "Fourtrees! All four Clans meet here at the full moon."],
+]
+const PATROL := ["Lionheart", "Graypaw", "Ravenpaw"]
 
 var _player: PlatformPlayer
+var _patrol: Array[Follower] = []
+var _dialog: DialogBox
 var _marked: Array[bool] = []
 var _checkpoint_x := 140.0
 var _playing := false
@@ -47,16 +58,21 @@ func _ready() -> void:
 	for o in OBSTACLES:
 		_add_solid(Rect2(o[0], o[1], o[2], o[3]))
 	_add_solid(Rect2(-50, -400, 50, 1200))
+	_add_solid(Rect2(RIVER.x - 30, -400, 30, 1200))  # stops you falling in the river
 	_add_solid(Rect2(LEVEL_END, -400, 50, 1200))
 
-	var mentor := Npc.new().setup(GameState.MENTOR, {"fur": Color("c9ced6"), "markings": Color("5d626b"),
-			"pattern": "Tabby Stripes", "eyes": Color("5fd14a")}, 1.05, -1.0)
-	mentor.position = Vector2(4330, GROUND_Y)
-	add_child(mentor)
+	var riverclan := Npc.make("RiverClan warrior", -1.0)
+	riverclan.position = Vector2(4610, GROUND_Y)
+	add_child(riverclan)
 
 	_player = PlatformPlayer.new()
 	_player.position = Vector2(_checkpoint_x, GROUND_Y - 2)
 	_player.frozen = true
+	# The patrol is added first so they walk behind you
+	for i in PATROL.size():
+		var f := Follower.make(PATROL[i], _player, 110.0 + i * 100.0)
+		add_child(f)
+		_patrol.append(f)
 	add_child(_player)
 	var camera := Camera2D.new()
 	camera.limit_left = 0
@@ -70,15 +86,16 @@ func _ready() -> void:
 
 	var hud := CanvasLayer.new()
 	add_child(hud)
-	hud.add_child(Fx.centered_label("BORDER PATROL", 34, Color("ffd966"), 10))
-	_score_label = Fx.centered_label("", 36, Color.WHITE, 54)
+	_score_label = Fx.centered_label("", 38, Color.WHITE, 30)
 	hud.add_child(_score_label)
 	_update_score()
 
+	_dialog = DialogBox.new()
+	add_child(_dialog)
 	_card = InfoCard.new()
 	add_child(_card)
-	_card.show_card("Border Patrol!",
-			"Run to the border and leave a scent marker on every glowing tree.\n\nPress SPACE to jump over logs, rocks and streams!",
+	_card.show_card(GameState.current().get("title", "Border Patrol!"),
+			"Patrol the territory with Lionheart, Graypaw and Ravenpaw!\nLeave a scent marker at each glowing special place.\n\nPress SPACE to jump over logs, rocks and streams!",
 			"Press SPACE to start!")
 	await _card.closed
 	_playing = true
@@ -121,6 +138,11 @@ func _mark(i: int) -> void:
 	Fx.popup_text(self, pos + Vector2(0, -80), "Scent marked!", Color("e7c6ff"))
 	_player.cat.bounce(0.25)
 	_update_score()
+	var place: Array = PLACES[i]
+	for f in _patrol:
+		if f.display_name == Story.display_name(place[1]):
+			Fx.speech(f, place[2], 112 * f.cat.size + 30, 3.0)
+			f.cat.bounce(0.25)
 
 
 func _splash() -> void:
@@ -131,6 +153,8 @@ func _splash() -> void:
 	_player.position = Vector2(_checkpoint_x, GROUND_Y - 2)
 	_player.velocity = Vector2.ZERO
 	_player.cat.bounce(0.3)
+	for f in _patrol:
+		f.reset()
 
 
 func _update_score() -> void:
@@ -142,12 +166,18 @@ func _win() -> void:
 	_player.frozen = true
 	Sfx.play("win")
 	Fx.confetti(self, _player.position + Vector2(0, -200), 80)
-	await get_tree().create_timer(1.0).timeout
-	_card.show_card("Border Patrolled!", "You marked the whole border!\nNow every Clan knows this is %s territory." % GameState.CLAN,
+	await get_tree().create_timer(1.2).timeout
+	_dialog.say(Story.lines([
+		["Lionheart", "Here's the river. On the other side is RiverClan territory!"],
+		["RiverClan warrior", "Hey! You ThunderClan cats stay on YOUR side of the river!"],
+		["Graypaw", "We will! Don't worry, fish-breath!"],
+		["Lionheart", "Graypaw! Be polite! ...Well done, everyone. That's the whole border marked."],
+	]))
+	await _dialog.finished
+	_card.show_card("Patrol Complete!", "You marked the whole border with your patrol!\nNow every Clan knows this is %s territory." % GameState.CLAN,
 			"Press SPACE to go back to camp")
 	await _card.closed
-	GameState.finish_training("patrol")
-	Transition.go("res://scenes/camp.tscn")
+	GameState.complete_step()
 
 
 # --- drawing -------------------------------------------------------------------------------
@@ -193,13 +223,20 @@ func _draw() -> void:
 	# Scent marker trees
 	for i in MARKERS.size():
 		_draw_marker(Vector2(MARKERS[i], GROUND_Y), _marked[i])
+		draw_string(ThemeDB.fallback_font, Vector2(MARKERS[i] - 100, GROUND_Y - 225), PLACES[i][0],
+				HORIZONTAL_ALIGNMENT_CENTER, 200, 24, Fx.INK)
+	# The river
+	draw_rect(Rect2(RIVER.x, 615, RIVER.y - RIVER.x, 120), Color("4aa3e0"))
+	for k in 8:
+		var wx := RIVER.x + fmod(k * 37.0 + _time * 50.0, RIVER.y - RIVER.x - 20)
+		draw_line(Vector2(wx, 635 + (k % 3) * 22), Vector2(wx + 18, 635 + (k % 3) * 22), Color("d6f0ff"), 3.0)
 	# Border stones and sign at the finish
 	for k in 4:
 		Scenery.rock(self, Vector2(FINISH_X + 30 + k * 26, GROUND_Y + 4), 0.35, Color("a3a5ad"))
 	draw_rect(Rect2(FINISH_X - 6, GROUND_Y - 150, 12, 150), Color("6b4428"))
 	draw_rect(Rect2(FINISH_X - 70, GROUND_Y - 170, 140, 50).grow(3), Scenery.OUTLINE)
 	draw_rect(Rect2(FINISH_X - 70, GROUND_Y - 170, 140, 50), Color("c79a5f"))
-	draw_string(ThemeDB.fallback_font, Vector2(FINISH_X - 60, GROUND_Y - 136), "BORDER", HORIZONTAL_ALIGNMENT_CENTER,
+	draw_string(ThemeDB.fallback_font, Vector2(FINISH_X - 60, GROUND_Y - 136), "RIVER", HORIZONTAL_ALIGNMENT_CENTER,
 			120, 26, Scenery.OUTLINE)
 
 

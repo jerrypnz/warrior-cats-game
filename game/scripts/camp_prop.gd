@@ -25,6 +25,7 @@ func footprint() -> Rect2:
 		"high_rock": return Rect2(global_position + Vector2(-165, -110), Vector2(330, 115))
 		"den": return Rect2(global_position + Vector2(-95, -45), Vector2(190, 48))
 		"fresh_kill": return Rect2(global_position + Vector2(-40, -18), Vector2(80, 22))
+		"medicine": return Rect2(global_position + Vector2(-60, -30), Vector2(120, 32))
 	return Rect2()
 
 
@@ -33,6 +34,7 @@ func _draw() -> void:
 		"den": _draw_den()
 		"high_rock": _draw_high_rock()
 		"fresh_kill": _draw_fresh_kill()
+		"medicine": _draw_medicine()
 
 
 func _draw_den() -> void:
@@ -44,16 +46,29 @@ func _draw_den() -> void:
 	for p in dome:
 		outline.append(p * 1.04)
 	draw_colored_polygon(outline, OUTLINE)
-	draw_colored_polygon(dome, Color("3f7337"))
+	draw_colored_polygon(dome, Color("5fa84f"))
 	for leaf in [Vector2(-60, -40), Vector2(-20, -80), Vector2(30, -60), Vector2(60, -30), Vector2(0, -40),
 			Vector2(-45, -75), Vector2(50, -78), Vector2(-75, -15), Vector2(75, -12)]:
-		draw_circle(leaf, 14, Color("4f8a43"))
-		draw_circle(leaf + Vector2(-3, -3), 7, Color("63a352"))
+		draw_circle(leaf, 14, Color("6fb85a"))
+		draw_circle(leaf + Vector2(-3, -3), 7, Color("8cc97a"))
 	var door := PackedVector2Array()
 	for i in 13:
 		var a := PI + PI * i / 12.0
 		door.append(Vector2(cos(a) * 34, sin(a) * 46))
-	draw_colored_polygon(door, Color("1e1612"))
+	draw_colored_polygon(door, Color("3a2a2a"))
+
+
+func _draw_medicine() -> void:
+	# A tunnel of ferns leading to the medicine cat's den
+	for k in 9:
+		var x := -60.0 + k * 15.0
+		for a in [-0.6, -0.2, 0.2, 0.6]:
+			var tip := Vector2(x + sin(a) * 40, -85 + absf(a) * 30)
+			draw_line(Vector2(x, 0), tip, OUTLINE, 7.0)
+			draw_line(Vector2(x, 0), tip, Color("6fc46a"), 4.0)
+	draw_colored_polygon(Fx.ellipse_points(Vector2(0, -16), Vector2(26, 18)), Color("3a2a2a"))
+	for p in [Vector2(-40, -10), Vector2(42, -14)]:
+		Scenery.flower(self, p, Color("c9b6ff"))
 
 
 func _draw_high_rock() -> void:
@@ -63,12 +78,12 @@ func _draw_high_rock() -> void:
 	for p in pts:
 		outline.append(p * 1.03 + Vector2(0, 2))
 	draw_colored_polygon(outline, OUTLINE)
-	draw_colored_polygon(pts, Color("8d8f96"))
+	draw_colored_polygon(pts, Color("a7a3b5"))
 	draw_colored_polygon(PackedVector2Array([Vector2(-100, -112), Vector2(-40, -130), Vector2(50, -126),
-			Vector2(-30, -110)]), Color("b4b6bd"))
+			Vector2(-30, -110)]), Color("cfcbdc"))
 	draw_colored_polygon(PackedVector2Array([Vector2(60, -40), Vector2(140, -50), Vector2(160, -10),
-			Vector2(80, -8)]), Color("75777e"))
-	draw_line(Vector2(-60, -70), Vector2(-20, -40), Color("6d6f76"), 4.0)
+			Vector2(80, -8)]), Color("8e8aa0"))
+	draw_line(Vector2(-60, -70), Vector2(-20, -40), Color("8e8aa0"), 4.0)
 
 
 func _draw_fresh_kill() -> void:

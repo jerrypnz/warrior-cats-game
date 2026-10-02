@@ -21,18 +21,20 @@ func _ready() -> void:
 	_panel = Panel.new()
 	_panel.position = Vector2(240, 150)
 	_panel.size = Vector2(800, 420)
-	_panel.add_theme_stylebox_override("panel", Fx.panel_style(Color(0.16, 0.11, 0.07, 0.96), Color("e8c26a"), 26, 6))
+	_panel.add_theme_stylebox_override("panel", Fx.cute_panel(30))
 	add_child(dim)
 	add_child(_panel)
-	_title = Fx.centered_label("", 52, Color("ffd966"), 30, 800)
+	_title = Fx.centered_label("", 50, Fx.PINK_DARK, 30, 800)
+	_title.add_theme_constant_override("outline_size", 0)
 	_panel.add_child(_title)
-	_body = Fx.make_label("", 30, Color.WHITE, 6)
+	_body = Fx.ink_label("", 28)
 	_body.position = Vector2(50, 120)
 	_body.size = Vector2(700, 220)
 	_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel.add_child(_body)
-	_hint = Fx.centered_label("Press SPACE!", 30, Color("9be37a"), 350, 800)
+	_hint = Fx.centered_label("Press SPACE!", 30, Color("3f9e4a"), 350, 800)
+	_hint.add_theme_constant_override("outline_size", 0)
 	_panel.add_child(_hint)
 	visible = false
 

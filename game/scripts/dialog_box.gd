@@ -11,6 +11,7 @@ var _shown := 0.0
 var _opened_frame := -10
 var _closed_frame := -10
 var _panel: Panel
+var _name_tag: Panel
 var _name_label: Label
 var _text_label: Label
 var _hint: Label
@@ -19,20 +20,24 @@ var _hint: Label
 func _ready() -> void:
 	layer = 10
 	_panel = Panel.new()
-	_panel.position = Vector2(120, 500)
-	_panel.size = Vector2(1040, 196)
-	_panel.add_theme_stylebox_override("panel", Fx.panel_style(Color(0.16, 0.11, 0.07, 0.94), Color("e8c26a")))
+	_panel.position = Vector2(120, 512)
+	_panel.size = Vector2(1040, 186)
+	_panel.add_theme_stylebox_override("panel", Fx.cute_panel())
 	add_child(_panel)
-	_name_label = Fx.make_label("", 30, Color("ffd966"))
-	_name_label.position = Vector2(28, 12)
-	_panel.add_child(_name_label)
-	_text_label = Fx.make_label("", 28, Color.WHITE, 6)
-	_text_label.position = Vector2(28, 56)
-	_text_label.size = Vector2(984, 110)
+	_name_tag = Panel.new()
+	_name_tag.position = Vector2(30, -26)
+	_name_tag.add_theme_stylebox_override("panel", Fx.panel_style(Fx.PINK_DARK, Color.WHITE, 20, 4))
+	_panel.add_child(_name_tag)
+	_name_label = Fx.make_label("", 28, Color.WHITE, 0)
+	_name_label.position = Vector2(22, 4)
+	_name_tag.add_child(_name_label)
+	_text_label = Fx.ink_label("", 28)
+	_text_label.position = Vector2(34, 36)
+	_text_label.size = Vector2(972, 110)
 	_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel.add_child(_text_label)
-	_hint = Fx.make_label("SPACE >", 22, Color("ffd966"), 5)
-	_hint.position = Vector2(910, 154)
+	_hint = Fx.ink_label("SPACE >", 22, Fx.PINK_DARK)
+	_hint.position = Vector2(920, 146)
 	_panel.add_child(_hint)
 	_panel.visible = false
 
@@ -52,6 +57,9 @@ func is_open() -> bool:
 
 func _show_line() -> void:
 	_name_label.text = _lines[_index][0]
+	_name_tag.visible = _name_label.text != ""
+	_name_tag.size = Vector2(_name_label.get_minimum_size().x + 44, 46)
+	_text_label.add_theme_color_override("font_color", Fx.INK if _name_tag.visible else Color("8a6a7a"))
 	_text_label.text = _lines[_index][1]
 	_text_label.visible_characters = 0
 	_shown = 0.0

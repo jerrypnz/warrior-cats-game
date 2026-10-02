@@ -2,6 +2,13 @@ class_name Fx
 extends RefCounted
 ## Little helpers for juicy effects: particle bursts, floating text, screen shake, labels.
 
+# Cute pastel colors for the menus and talking boxes
+const CREAM := Color("fff6ec")
+const PINK := Color("f7a1bd")
+const PINK_DARK := Color("e0628a")
+const INK := Color("5a3a48")  # dark text on cream
+const OUTLINE := Color("4a2f3c")
+
 
 static func burst(parent: Node, pos: Vector2, color: Color, amount := 16, speed := 240.0,
 		gravity := 400.0) -> void:
@@ -64,7 +71,7 @@ static func make_label(text: String, font_size: int, color := Color.WHITE, outli
 	label.text = text
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_outline_color", Color("1c1420"))
+	label.add_theme_color_override("font_outline_color", OUTLINE)
 	label.add_theme_constant_override("outline_size", outline)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
@@ -94,3 +101,45 @@ static func ellipse_points(center: Vector2, radii: Vector2, count := 32) -> Pack
 		var a := TAU * i / count
 		pts.append(center + Vector2(cos(a) * radii.x, sin(a) * radii.y))
 	return pts
+
+
+## The panel style used for cute menus: cream with a pink border
+static func cute_panel(radius := 22) -> StyleBoxFlat:
+	var style := panel_style(CREAM, PINK, radius, 5)
+	style.shadow_color = Color(0.3, 0.1, 0.2, 0.25)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0, 4)
+	return style
+
+
+## Dark text with no outline, for writing on cream panels
+static func ink_label(text: String, font_size: int, color := INK) -> Label:
+	var label := make_label(text, font_size, color, 0)
+	return label
+
+
+## A speech bubble above a cat for a few seconds (doesn't stop the game)
+static func speech(cat_node: Node2D, text: String, height := 130.0, seconds := 2.8) -> void:
+	var bubble := PanelContainer.new()
+	var style := panel_style(Color.WHITE, OUTLINE, 14, 3)
+	style.set_content_margin_all(8)
+	bubble.add_theme_stylebox_override("panel", style)
+	var label := ink_label(text, 20)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(minf(text.length() * 10.5 + 10, 300), 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bubble.add_child(label)
+	cat_node.add_child(bubble)
+	bubble.z_index = 50
+	bubble.reset_size.call_deferred()
+	var place := func():
+		bubble.position = Vector2(-bubble.size.x / 2.0, -height - bubble.size.y)
+	place.call_deferred()
+	var t := bubble.create_tween()
+	t.tween_interval(seconds)
+	t.tween_property(bubble, "modulate:a", 0.0, 0.3)
+	t.tween_callback(bubble.queue_free)
+
+
+static func hearts(parent: Node, pos: Vector2, amount := 8) -> void:
+	burst(parent, pos, Color("ff7aa2"), amount, 200.0, -60.0)

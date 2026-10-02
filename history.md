@@ -36,3 +36,40 @@ you design what your cat looks like and pick the first part of your name and you
 - Get your own apprentice once you're a warrior
 - More training: climbing trees, fishing, night patrol
 - Draw your cat on paper and put it in the game
+
+## Session: 2026-10-03 (part 2)
+
+### What the creator asked for:
+Make the art kawaii and chibi, more like the real book. Follow the main story of the first
+book, but with YOU as the main character instead of Fireheart. Battle practice should be with
+your mentor, and border patrol should be in a group.
+
+### What was built/changed:
+- **New chibi art**: big round heads, huge sparkly eyes, rosy cheeks, happy ^^ blinks, and
+  a "Fluffy" fur option. Grumpy cats (Tigerclaw, Longtail, Yellowfang) have grumpy eyebrows!
+- **Cute pastel menus**: cream and pink talking boxes with name tags
+- **Book characters**: Bluestar, Tigerclaw, Lionheart, Graypaw, Ravenpaw, Spottedleaf,
+  Yellowfang, Longtail, Frostfur and her kits, Sandpaw, Dustpaw, Smallear, and Smudge
+- **The story, in 9 chapters**:
+  1. Kittypet: you're "Biscuit" with a collar in a Twoleg garden. Smudge warns you about the forest
+  2. Into the Forest: catch your very first mouse
+  3. A Surprise Attack: Graypaw jumps out for a play-fight, then Bluestar and Lionheart invite
+     you to join ThunderClan (and your collar comes off!)
+  4. Hunting Lesson with Bluestar (Bluestar is your mentor, just like in the book)
+  5. Battle Practice: spar with Bluestar. Dodge when she crouches, pounce when she's tired
+  6. Border Patrol with Lionheart, Graypaw and Ravenpaw following you. Visit Tallpines,
+     Sunningrocks, Snakerocks, the Owl Tree and Fourtrees, and meet a RiverClan cat at the river
+  7. The Grumpy Stranger: find hurt Yellowfang and catch mice for her
+  8. Rescue the Kits: ShadowClan took Frostfur's kits! Sneak through ShadowClan's camp at night,
+     hiding in the ferns from the guards
+  9. Warrior Ceremony: Graypaw becomes Graystripe, then you get YOUR warrior name
+- Camp now looks like the book: Highrock, medicine den with ferns, gorse wall with yellow flowers
+- Kid-friendly changes from the book: no cats get hurt badly, and fights are play-fights
+
+### What you can do now:
+- Play the whole story from kittypet to warrior!
+
+### What's next:
+- Book 2 adventures? (Bringing WindClan home, becoming a mentor)
+- Pick a different Clan
+- Draw your cat on paper and put it in the game
