@@ -4,18 +4,24 @@
 
 [application]
 
-config/name="My Awesome Game"
-config/description="A game made by a kid with imagination!"
-run/main_scene=""
+config/name="Warrior Cats: Path of the Apprentice"
+config/description="Design your cat, train as an apprentice, and become a warrior!"
+run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameState="*res://scripts/game_state.gd"
+Sfx="*res://scripts/sfx.gd"
+Transition="*res://scripts/transition.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
+window/stretch/aspect="keep"
 
 [input]
 
@@ -55,6 +61,8 @@ action={
 }
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.1, 0.08, 0.14, 1)
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
