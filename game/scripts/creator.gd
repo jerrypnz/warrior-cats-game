@@ -87,7 +87,7 @@ func _add_row(ui: CanvasLayer, i: int) -> void:
 			arrow.focus_mode = Control.FOCUS_NONE
 			arrow.add_theme_font_size_override("font_size", 30)
 			for state in ["normal", "hover", "pressed"]:
-				var c := {"normal": Fx.PINK, "hover": Fx.PINK_DARK, "pressed": Color("c2406a")}[state]
+				var c: Color = {"normal": Fx.PINK, "hover": Fx.PINK_DARK, "pressed": Color("c2406a")}[state]
 				arrow.add_theme_stylebox_override(state, Fx.panel_style(c, Color.WHITE, 14, 3))
 			arrow.add_theme_color_override("font_color", Color.WHITE)
 			arrow.add_theme_color_override("font_hover_color", Color.WHITE)
