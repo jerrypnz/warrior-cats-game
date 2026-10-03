@@ -245,3 +245,30 @@ Actually be in the camp, go on patrols and interact with things, all in one worl
 - Go inside the dens together
 - Herb gathering for medicine cats in the shared world
 - Meet a RiverClan patrol at the river
+
+## Session: 2026-10-03 (part 9)
+
+### What the creator asked for:
+Whatever rank you are in your own game, that's your rank in the two-player world too.
+
+### What was built/changed:
+- Your rank shows under your name at the top of your half of the screen
+- The camp changes to match: if one of you is leader, Bluestar has retired to the elders' den;
+  a deputy or leader means Lionheart retired too; a head medicine cat means Spottedleaf retired.
+  Retired cats hang out by the Elders' Den and you can talk to them.
+- **Leaders**: only the leader can climb the Highrock and hold a Clan meeting (everyone else is
+  told that's the leader's job). The Leader's Den is "your very own den".
+- **Medicine cats**: sparkly herbs grow in the forest that only medicine cats can pick. Carry them
+  home and put them away in the Medicine Den.
+- **Warriors and apprentices**: the dens talk about YOUR nest, and apprentices aren't allowed
+  in the Warriors' Den yet
+- Clan cats talk to you based on your rank (leader, medicine cat, warrior or apprentice)
+
+### What you can do now:
+- Play ThunderClan Together as Starlingstar (leader) and Cinderpelt (medicine cat): hold a Clan
+  meeting, and gather herbs for the medicine den
+
+### What's next:
+- Deputies could send Clan cats on patrols
+- Go inside the dens together
+- Meet a RiverClan patrol at the river

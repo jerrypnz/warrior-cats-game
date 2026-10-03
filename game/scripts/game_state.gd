@@ -438,7 +438,8 @@ func describe_slot(i: int) -> Dictionary:
 	var progress: String = saved.rank_title() + "!" if saved.is_grown() else str(saved.current().get("title", ""))
 	var info := {"name": saved.cat_name(), "look": saved.look(), "paint": saved.paint,
 			"progress": progress, "size": saved.cat_size(), "kittypet": saved.is_kittypet(),
-			"slot": i, "title": saved.rank_title(), "grown": saved.is_grown()}
+			"slot": i, "title": saved.rank_title(), "grown": saved.is_grown(), "rank": saved.rank,
+			"medicine": saved.is_medicine(), "leader": saved.is_leader()}
 	saved.free()
 	return info
 

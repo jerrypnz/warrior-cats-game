@@ -290,17 +290,22 @@ static func chat(cat_name: String) -> String:
 	var gs := GameState
 	if cat_name == gs.deputy_name and gs.is_leader():
 		return fill(DEPUTY_CHAT.pick_random())
+	return fill(chat_options(cat_name, gs.is_grown(), gs.is_medicine(), gs.is_leader()).pick_random())
+
+
+## The things a Clan cat might say to a cat of this rank (lines still have {me} in them)
+static func chat_options(cat_name: String, grown: bool, medicine: bool, leader: bool) -> Array:
 	var lists := [CHATS]
-	if gs.is_grown():
+	if grown:
 		lists.push_front(GROWN_CHATS)
-	if gs.is_medicine():
+	if medicine:
 		lists.push_front(MEDICINE_CHATS)
-	if gs.is_leader():
+	if leader:
 		lists.push_front(LEADER_CHATS)
 	for list: Dictionary in lists:
 		if list.has(cat_name):
-			return fill(list[cat_name].pick_random())
-	return fill(CHATS.Graypaw.pick_random())
+			return list[cat_name]
+	return CHATS.Graypaw
 
 
 ## Fills in names for a whole list of [speaker, text] lines

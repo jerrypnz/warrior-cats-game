@@ -5,6 +5,8 @@ extends Node2D
 ## Player 1: arrows + SPACE.  Player 2: W A S D + E.  The same key pounces, talks and uses things.
 ##   Border patrol: mark the 5 glowing scent-marker trees.
 ##   Hunting patrol: catch mice and carry them home to the fresh-kill pile.
+## Each player keeps their own rank from their save: only a leader speaks from the Highrock,
+## only medicine cats can pick herbs, and the camp changes when cats have retired.
 
 const MAP := Rect2(0, 0, 3200, 2400)
 const WALK := Rect2(210, 150, 2900, 2160)  # where cats can go (the river is on the left)
@@ -68,6 +70,10 @@ var _mice: Array[Mouse] = []
 var _pile: CampProp
 var _pile_count := 0
 var _patrols := 0
+var _herbs: Array[HerbPatch] = []  # herbs growing in the forest (for medicine cats)
+var _carrying_herbs := [0, 0]
+var _herb_count := 0  # herbs brought home to the medicine den
+var _quest_back: Panel
 var _quest_label: Label
 var _banner: Label
 var _map: MiniMap
@@ -124,11 +130,27 @@ func _ready() -> void:
 
 func _build_camp() -> void:
 	var rock := _add_prop("high_rock", Vector2(640, 300) + OFFSET, "Highrock")
-	var bluestar := Npc.make("Bluestar")
-	bluestar.position = Vector2(-10, -136)
-	bluestar.talk_spot = Vector2(0, 175)
-	rock.add_child(bluestar)
-	_npcs.append(bluestar)
+	# Cats who retired because one of the players took their place
+	var retired := []
+	if _leader_name() != "":
+		retired.append("Bluestar")
+	if _infos.any(func(c): return c.rank in ["deputy", "leader"]):
+		retired.append("Lionheart")
+	if _infos.any(func(c): return c.rank == "head"):
+		retired.append("Spottedleaf")
+	if not "Bluestar" in retired:
+		var bluestar := Npc.make("Bluestar")
+		bluestar.position = Vector2(-10, -136)
+		bluestar.talk_spot = Vector2(0, 175)
+		rock.add_child(bluestar)
+		_npcs.append(bluestar)
+	var elder_spots := [Vector2(870, 650), Vector2(1170, 545), Vector2(800, 670)]
+	for who in retired:
+		var elder := Npc.make(who, -1.0)
+		elder.position = elder_spots.pop_front() + OFFSET
+		elder.set_meta("retired", true)
+		_world.add_child(elder)
+		_npcs.append(elder)
 	_spots.append({"pos": Vector2(530, 352) + OFFSET, "what": "rock"})
 	_spots.append({"pos": Vector2(748, 322) + OFFSET, "what": "den", "den": "leader"})
 	for key in DENS:
@@ -137,8 +159,13 @@ func _build_camp() -> void:
 		_spots.append({"pos": den[0] + OFFSET + Vector2(0, 22), "what": "den", "den": key})
 	_pile = _add_prop("fresh_kill", Vector2(840, 470) + OFFSET, "Fresh-kill Pile")
 	_spots.append({"pos": Vector2(840, 492) + OFFSET, "what": "pile"})
+	var someone_grown: bool = _infos.any(func(c): return c.grown)
 	for c in CLAN:
+		if c[0] in retired:
+			continue
 		var npc := Npc.make(c[0], [-1.0, 1.0].pick_random())
+		if c[0] == "Graypaw" and someone_grown:
+			npc.rename("Graystripe")
 		npc.position = c[1] + OFFSET
 		var area: Rect2 = c[2]
 		if area.has_area():
@@ -148,6 +175,14 @@ func _build_camp() -> void:
 			npc.speed = 120.0
 		_world.add_child(npc)
 		_npcs.append(npc)
+
+
+## The name of a player who is leader ("" if neither of you is)
+func _leader_name() -> String:
+	for info in _infos:
+		if info.leader:
+			return info.name
+	return ""
 
 
 func _add_prop(kind: String, pos: Vector2, label: String) -> CampProp:
@@ -180,6 +215,18 @@ func _build_territory() -> void:
 		_markers.append(marker)
 	for i in 18:
 		_spawn_mouse()
+	if _infos.any(func(c): return c.medicine):
+		for i in 10:
+			_spawn_herb()
+
+
+func _spawn_herb() -> void:
+	var zone: Rect2 = MOUSE_ZONES.pick_random()
+	var herb := HerbPatch.new()
+	herb.kind = HerbArt.GROWING.pick_random()
+	herb.position = Vector2(randf_range(zone.position.x, zone.end.x), randf_range(zone.position.y, zone.end.y))
+	_world.add_child(herb)
+	_herbs.append(herb)
 
 
 func _spawn_mouse() -> void:
@@ -202,21 +249,26 @@ func _make_hud() -> void:
 		name_label.size = Vector2(600, 40)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
 		hud.add_child(name_label)
+		var title := Fx.make_label(_infos[i].title, 20, Color("fff6ec"), 6)
+		title.position = Vector2(16 + i * 660, 46)
+		title.size = Vector2(600, 30)
+		title.horizontal_alignment = name_label.horizontal_alignment
+		hud.add_child(title)
 		var keys := Fx.make_label("Arrows + SPACE" if i == 0 else "W A S D + E", 22, Color("fff6ec"), 6)
 		keys.position = Vector2(16 + i * 660, 684)
 		keys.size = Vector2(600, 30)
 		keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if i == 0 else HORIZONTAL_ALIGNMENT_RIGHT
 		hud.add_child(keys)
-	var quest_back := Panel.new()
-	quest_back.position = Vector2(440, 8)
-	quest_back.size = Vector2(400, 82)
-	quest_back.add_theme_stylebox_override("panel", Fx.cute_panel(18))
-	hud.add_child(quest_back)
+	_quest_back = Panel.new()
+	_quest_back.position = Vector2(440, 8)
+	_quest_back.size = Vector2(400, 110 if not _herbs.is_empty() else 82)
+	_quest_back.add_theme_stylebox_override("panel", Fx.cute_panel(18))
+	hud.add_child(_quest_back)
 	_quest_label = Fx.ink_label("", 22)
 	_quest_label.position = Vector2(0, 8)
-	_quest_label.size = Vector2(400, 70)
+	_quest_label.size = Vector2(400, _quest_back.size.y - 12)
 	_quest_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	quest_back.add_child(_quest_label)
+	_quest_back.add_child(_quest_label)
 	_banner = Fx.centered_label("", 44, Color("ffd966"), 110)
 	_banner.add_theme_constant_override("outline_size", 12)
 	_banner.visible = false
@@ -256,9 +308,17 @@ func _player_turn(i: int) -> void:
 	prompt.visible = not spot.is_empty()
 	if spot.is_empty():
 		return
-	var verb: String = {"cat": "talk", "den": "look", "pile": "look", "rock": "climb up!", "marker": "mark it!"}[spot.what]
+	var info: Dictionary = _infos[i]
+	var verb: String = {"cat": "talk", "den": "look", "pile": "look", "rock": "look", "marker": "mark it!",
+			"herb": "look"}[spot.what]
 	if spot.what == "pile" and _carrying[i] > 0:
 		verb = "drop your prey"
+	elif spot.what == "rock" and info.leader:
+		verb = "hold a Clan meeting!"
+	elif spot.what == "herb" and info.medicine:
+		verb = "pick %s" % spot.herb.kind
+	elif spot.what == "den" and spot.den == "medicine" and _carrying_herbs[i] > 0:
+		verb = "put away your herbs"
 	prompt.text = "%s = %s" % [KEY_NAMES[i], verb]
 	prompt.position = spot.pos + Vector2(-150, 10)
 	if Input.is_action_just_pressed("p%d_pounce" % (i + 1)):
@@ -281,23 +341,38 @@ func _nearest_spot(pos: Vector2) -> Dictionary:
 		if not marker.done and marker.position.distance_to(pos) < best_d + 20:
 			best_d = marker.position.distance_to(pos)
 			best = {"pos": marker.position, "what": "marker", "marker": marker}
+	for herb in _herbs:
+		if herb.position.distance_to(pos) < best_d:
+			best_d = herb.position.distance_to(pos)
+			best = {"pos": herb.position, "what": "herb", "herb": herb}
 	return best
 
 
 func _use(i: int, spot: Dictionary) -> void:
 	var player := _players[i]
-	var me: String = _infos[i].name
+	var info: Dictionary = _infos[i]
+	var me: String = info.name
+	var above := 112 * player.cat.size + 30
 	match spot.what:
 		"cat":
 			var npc: Npc = spot.npc
 			npc.face_toward(player.position)
 			npc.cat.bounce(0.25)
 			Sfx.play("select")
-			var lines: Array = Story.CHATS.get(npc.npc_name, ["Hi, {me}!"])
+			var lines: Array = Story.DEN_CHATS[npc.npc_name] if npc.has_meta("retired") else \
+					Story.chat_options(npc.npc_name, info.grown, info.medicine, info.leader)
 			Fx.speech(npc, lines.pick_random().replace("{me}", me), 112 * npc.cat.size + 30, 3.0)
 		"den":
 			Sfx.play("click")
-			Fx.speech(player, DEN_WORDS[spot.den], 112 * player.cat.size + 30, 3.0)
+			if spot.den == "medicine" and _carrying_herbs[i] > 0:
+				_put_away_herbs(i)
+			else:
+				Fx.speech(player, _den_words(i, spot.den), above, 3.0)
+		"herb":
+			if info.medicine:
+				_pick_herb(i, spot.herb)
+			else:
+				Fx.speech(player, "Only medicine cats know which plants are herbs!", above, 2.5)
 		"pile":
 			if _carrying[i] == 0:
 				Fx.speech(player, "%d pieces of prey. Let's catch more!" % _pile_count if _pile_count > 0 else
@@ -315,12 +390,64 @@ func _use(i: int, spot: Dictionary) -> void:
 			Fx.confetti(_world, _pile.position + Vector2(0, -60), 40)
 			_cheer("Fresh-kill!")
 		"rock":
-			_climb(i)
+			if info.leader:
+				_climb(i)
+			elif _leader_name() != "":
+				Fx.speech(player, "Only %s can speak from the Highrock. That's the leader's job!" % _leader_name(), above, 3.0)
+			else:
+				Fx.speech(player, "Only the leader speaks from the Highrock. That's Bluestar!", above, 3.0)
 		"marker":
 			_mark(i, spot.marker)
 
 
-## Climb the Highrock: the whole Clan cheers your name!
+## What a player sees when they look at a den. It depends on their rank!
+func _den_words(i: int, den: String) -> String:
+	var info: Dictionary = _infos[i]
+	match den:
+		"leader":
+			if info.leader:
+				return "Your very own den! Your mossy nest is inside."
+			if _leader_name() != "":
+				return "%s's den. Only the leader sleeps in here." % _leader_name()
+		"medicine":
+			if info.medicine:
+				return "Your medicine den! Let's find more herbs in the forest." if info.grown else \
+						"The medicine den, where you're learning to be a healer!"
+		"warriors":
+			if not info.grown and not info.medicine:
+				return "The Warriors' Den. Apprentices aren't allowed in there... yet!"
+			if info.grown and not info.medicine and not info.leader:
+				return "Your den! Your nest is next to Whitestorm's."
+		"apprentices":
+			if not info.grown and not info.medicine:
+				return "Your den! Your mossy nest is in here."
+	return DEN_WORDS[den]
+
+
+func _pick_herb(i: int, herb: HerbPatch) -> void:
+	_herbs.erase(herb)
+	_carrying_herbs[i] += 1
+	Sfx.play("collect", 1.2)
+	Fx.burst(_world, herb.position + Vector2(0, -20), Color("c9f7a8"), 16)
+	Fx.popup_text(_world, herb.position + Vector2(0, -70), "+ %s" % herb.kind, Color("c9f7a8"), 26)
+	herb.queue_free()
+	_players[i].cat.bounce(0.3)
+	_update_carrying(i)
+	await get_tree().create_timer(3.0).timeout
+	_spawn_herb()
+
+
+func _put_away_herbs(i: int) -> void:
+	_herb_count += _carrying_herbs[i]
+	_carrying_herbs[i] = 0
+	_update_carrying(i)
+	_update_quests()
+	Sfx.play("win")
+	Fx.hearts(_world, _players[i].position + Vector2(0, -80), 12)
+	Fx.speech(_players[i], "The medicine den is full of good herbs now!", 112 * _players[i].cat.size + 30, 2.5)
+
+
+## The leader climbs the Highrock and holds a Clan meeting: everyone cheers!
 func _climb(i: int) -> void:
 	var player := _players[i]
 	_on_rock[i] = true
@@ -331,6 +458,7 @@ func _climb(i: int) -> void:
 	up.tween_property(player, "position", Vector2(630 - 60 + i * 120, 184) + OFFSET, 0.5).set_trans(Tween.TRANS_BACK)
 	await up.finished
 	Sfx.play("win")
+	Fx.speech(player, "Let all cats gather beneath the Highrock!", 112 * player.cat.size + 30, 2.0)
 	for k in 2:
 		_cheer(_infos[i].name + "!")
 		await get_tree().create_timer(0.7).timeout
@@ -414,15 +542,22 @@ func _catch(mouse: Mouse, i: int) -> void:
 
 
 func _update_carrying(i: int) -> void:
-	var text: String = _infos[i].name
+	var holding := []
 	if _carrying[i] > 0:
-		text += "  (%d %s)" % [_carrying[i], "mouse" if _carrying[i] == 1 else "mice"]
+		holding.append("%d %s" % [_carrying[i], "mouse" if _carrying[i] == 1 else "mice"])
+	if _carrying_herbs[i] > 0:
+		holding.append("%d %s" % [_carrying_herbs[i], "herb" if _carrying_herbs[i] == 1 else "herbs"])
+	var text: String = _infos[i].name
+	if not holding.is_empty():
+		text += "  (%s)" % ", ".join(holding)
 	_players[i].name_label.text = text
 
 
 func _update_quests() -> void:
 	var marked := _markers.filter(func(m): return m.done).size()
 	_quest_label.text = "Border markers: %d / %d\nFresh-kill brought home: %d" % [marked, _markers.size(), _pile_count]
+	if not _herbs.is_empty() or _herb_count > 0:
+		_quest_label.text += "\nHerbs in the medicine den: %d" % _herb_count
 
 
 # --- drawing -------------------------------------------------------------------------------
@@ -495,6 +630,22 @@ class WorldFloor extends Node2D:
 	func _in_camp(p: Vector2, extra: float) -> bool:
 		var d := (p - CAMP) / (CAMP_RADII + Vector2(extra, extra))
 		return d.length() < 1.0
+
+
+class HerbPatch extends Node2D:
+	## A sparkly herb growing in the forest. Only medicine cats can pick it!
+	var kind := ""
+	var _time := randf() * 5.0
+
+	func _process(delta: float) -> void:
+		_time += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.5 + 0.5 * sin(_time * 3.0)
+		draw_circle(Vector2(0, -16), 32 + pulse * 6, Color(0.8, 1, 0.8, 0.22))
+		HerbArt.draw(self, Vector2.ZERO, kind, 1.2)
+		Scenery.star(self, Vector2(20, -44 - pulse * 6), 5, Color(1, 1, 0.8, 0.6 + 0.4 * pulse))
 
 
 class ScentMarker extends Node2D:
