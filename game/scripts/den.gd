@@ -54,6 +54,16 @@ const DENS := {
 				[Vector2(780, 300), "Honey", "Honey soothes a sore throat. Sweet!"],
 				[Vector2(300, 520), "Cobwebs", "Cobwebs go on cuts to help them stop hurting."]],
 	},
+	"leader": {
+		"title": "Leader's Den", "wall": Color("7d7890"), "cave": true,
+		"cats": [],
+		"nests": [],
+		# Special things the leader keeps: [place, name, what it is, color]
+		"treasures": [[Vector2(300, 380), "Fourtrees Stone", "A smooth stone from Fourtrees, where all four Clans meet at the full moon.", Color("b8b4bd")],
+				[Vector2(470, 320), "Owl Feather", "A soft feather from the Owl Tree. Hoo hoo!", Color("c8a07a")],
+				[Vector2(810, 320), "Moon Pebble", "A tiny pebble from Highstones. It sparkles just like the Moonstone!", Color("e7f3ff")],
+				[Vector2(980, 390), "Nine Stars", "{nine}", Color("ffd966")]],
+	},
 }
 
 var _den: Dictionary
@@ -81,7 +91,10 @@ func _ready() -> void:
 
 	var gs := GameState
 	var nests: Array = _den.nests.duplicate()
-	var home := "medicine" if gs.is_medicine() else "warriors" if gs.is_grown() else "apprentices"
+	var home := "leader" if gs.is_leader() else "medicine" if gs.is_medicine() else \
+			"warriors" if gs.is_grown() else "apprentices"
+	if gs.den == "leader" and not gs.is_leader():
+		nests.append([Vector2(640, 470), "Bluestar's nest"])
 	if gs.den == home:
 		_my_nest = Vector2(640, 470)
 		nests.append([_my_nest, "Your nest"])
@@ -100,6 +113,8 @@ func _ready() -> void:
 		floor_things.add_child(nest)
 	for herb in _den.get("herbs", []):
 		_spots.append({"pos": herb[0], "prompt": "SPACE = look", "what": "herb", "herb": herb})
+	for thing in _den.get("treasures", []):
+		_spots.append({"pos": thing[0], "prompt": "SPACE = look", "what": "herb", "herb": thing})
 
 	var cats: Array = _den.cats.filter(func(c): return c[0] != gs.deputy_name)
 	if gs.den == "elders":
@@ -139,6 +154,15 @@ func _ready() -> void:
 	hud.add_child(Fx.centered_label("Walk out the bottom to go back to camp", 22, Color("fff6ec"), 686))
 	_dialog = DialogBox.new()
 	add_child(_dialog)
+	if gs.den == "leader":
+		_welcome_to_leader_den.call_deferred()
+
+
+func _welcome_to_leader_den() -> void:
+	if GameState.is_leader():
+		_dialog.say(Story.lines([["", "Your very own den, {me}! Only the leader of ThunderClan sleeps here."]]))
+	else:
+		_dialog.say([["", "This is Bluestar's den, behind the curtain of lichen. She says you can peek inside!"]])
 
 
 func _process(_delta: float) -> void:
@@ -183,7 +207,9 @@ func _use(spot: Dictionary) -> void:
 			GameState.start_activity("heal_clan")
 		"herb":
 			Sfx.play("select")
-			_dialog.say([[spot.herb[1], spot.herb[2]]])
+			var leader := GameState.cat_name() if GameState.is_leader() else "Bluestar"
+			var text: String = spot.herb[2].format({"nine": "Nine little stars scratched in the wall, one for each of %s's nine lives." % leader})
+			_dialog.say([[spot.herb[1], text]])
 		"cinderpaw":
 			_dialog.say(Story.lines([["Cinderpaw", Story.DEN_CHATS.Cinderpaw.pick_random()]]))
 		"cat":
@@ -209,7 +235,8 @@ func _nap() -> void:
 	var dim := create_tween()
 	dim.tween_property(_dark, "color", Color("4a4a7a"), 1.0)
 	await get_tree().create_timer(2.5).timeout
-	var dreams := STARCLAN_DREAMS if GameState.is_medicine() and randf() < 0.6 else NAP_DREAMS
+	var starry := GameState.is_medicine() or GameState.is_leader()  # medicine cats and leaders dream of StarClan
+	var dreams := STARCLAN_DREAMS if starry and randf() < 0.6 else NAP_DREAMS
 	_dialog.say([["", dreams.pick_random()]])
 	await _dialog.finished
 	var wake := create_tween()
@@ -226,12 +253,16 @@ func _nap() -> void:
 func _draw() -> void:
 	var wall: Color = _den.wall
 	draw_rect(Rect2(0, 0, 1280, 720), wall.darkened(0.45))
-	# Leafy walls curving overhead
+	# Leafy walls curving overhead (or rock, for the leader's cave)
+	var cave: bool = _den.get("cave", false)
 	for i in 40:
 		var a := PI + PI * i / 39.0
 		var p := Vector2(640, 520) + Vector2(cos(a) * 640, sin(a) * 420)
-		draw_circle(p, 70, wall.darkened(0.15))
-		draw_circle(p + Vector2(-8, -8), 50, wall)
+		if cave:
+			Scenery.rock(self, p + Vector2(0, 50), 2.2 + (i % 3) * 0.3, wall.lightened((i % 4) * 0.06))
+		else:
+			draw_circle(p, 70, wall.darkened(0.15))
+			draw_circle(p + Vector2(-8, -8), 50, wall)
 	# Sunlight coming through the leaves
 	for x in [380.0, 700.0, 960.0]:
 		draw_colored_polygon(PackedVector2Array([Vector2(x - 20, 120), Vector2(x + 20, 120), Vector2(x + 90, 640),
@@ -242,6 +273,15 @@ func _draw() -> void:
 	# Way out
 	draw_colored_polygon(Fx.ellipse_points(EXIT + Vector2(0, 30), Vector2(90, 50)), Color("f3dfb5"))
 	draw_string(ThemeDB.fallback_font, EXIT + Vector2(-60, 10), "To camp", HORIZONTAL_ALIGNMENT_CENTER, 120, 22, Fx.INK)
+	for thing in _den.get("treasures", []):
+		_draw_treasure(thing[0], thing[1], thing[3])
+	if cave:
+		# The curtain of lichen hanging over the way out
+		for k in 16:
+			var x := EXIT.x - 90 + k * 12
+			var length := 40.0 + (k * 37 % 5) * 10.0 + sin(Time.get_ticks_msec() / 700.0 + k) * 4.0
+			draw_line(Vector2(x, EXIT.y - 70), Vector2(x + 3, EXIT.y - 70 + length), Color("a8d8a0"), 5.0)
+			draw_circle(Vector2(x + 3, EXIT.y - 70 + length), 3, Color("c9f0c0"))
 	for herb in _den.get("herbs", []):
 		var p: Vector2 = herb[0]
 		draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(46, 14)), Color("8e8aa0"))
@@ -252,6 +292,23 @@ func _draw() -> void:
 				"Honey": Color("ffd23f"), "Cobwebs": Color("f3f3f3")}.get(herb[1], Color.WHITE)
 		Scenery.flower(self, p + Vector2(0, -18), flower)
 		draw_string(ThemeDB.fallback_font, p + Vector2(-70, 40), herb[1], HORIZONTAL_ALIGNMENT_CENTER, 140, 20, Fx.INK)
+
+
+func _draw_treasure(p: Vector2, label: String, color: Color) -> void:
+	draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(40, 12)), Color(0, 0, 0, 0.15))
+	match label:
+		"Owl Feather":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-30, 0), p + Vector2(0, -16), p + Vector2(30, -6),
+					p + Vector2(0, 4)]), color)
+			draw_line(p + Vector2(-34, 2), p + Vector2(30, -6), Color("6b4428"), 2.0)
+		"Nine Stars":
+			for k in 9:
+				Scenery.star(self, p + Vector2(-40 + (k % 5) * 20, -60 + (k / 5) * 22), 7, color)
+		_:
+			draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(22, 14)), Fx.OUTLINE)
+			draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(19, 11)), color)
+			draw_circle(p + Vector2(-6, -15), 4, Color(1, 1, 1, 0.7))
+	draw_string(ThemeDB.fallback_font, p + Vector2(-80, 32), label, HORIZONTAL_ALIGNMENT_CENTER, 160, 20, Fx.INK)
 
 
 class Nest extends Node2D:

@@ -143,3 +143,24 @@ title screen?)
 - Choose a different Clan?
 - More Clan meeting ceremonies for the other kits (Thornkit, Brackenkit)
 - Book 2: bringing WindClan home
+
+## Session: 2026-10-03 (part 5)
+
+### What the creator asked for:
+A leader's den.
+
+### What was built/changed:
+- **Leader's Den**: a little cave in the side of the Highrock, with a curtain of lichen hanging
+  over the door (just like in the books). It has a sign in camp.
+- Inside: rocky walls, the leader's mossy nest, and special treasures to look at: a Fourtrees
+  stone, an Owl Tree feather, a sparkly Moon Pebble, and nine stars on the wall for the leader's
+  nine lives
+- Before you're leader it's Bluestar's den (she lets you peek). Once you're leader it's YOUR
+  den, and you can nap in your own nest and dream of StarClan.
+
+### What you can do now:
+- Walk to the right side of the Highrock and press SPACE to go inside
+
+### What's next:
+- Have the deputy come and visit the leader's den with news
+- More treasures to collect on patrols and bring home to the den

@@ -32,6 +32,7 @@ const TUNNEL := Vector2(640, 668)
 const HIGHROCK := Vector2(640, 300)
 const HIGHROCK_TOP := Vector2(630, 184)  # where the leader stands to talk to the Clan
 const MEETING_SPOT := Vector2(630, 352)  # stand here to climb the Highrock
+const LEADER_DOOR := Vector2(748, 322)  # the leader's den, a cave in the side of the Highrock
 const FROM_TUNNEL := ["free_hunt", "teach_battle", "gather_herbs", "lead_patrol", "nine_lives"]
 
 
@@ -56,6 +57,12 @@ func _ready() -> void:
 		var den: Array = DENS[key]
 		_add_prop("medicine" if key == "medicine" else "den", den[0], den[1])
 		_doors.append({"pos": den[0] + Vector2(0, 22), "prompt": "SPACE = go inside", "what": "den", "den": key})
+	_doors.append({"pos": LEADER_DOOR, "prompt": "SPACE = go inside", "what": "den", "den": "leader"})
+	var sign := Fx.make_label("Leader's Den", 20, Color("f6e8c8"), 6)
+	sign.size = Vector2(200, 30)
+	sign.position = LEADER_DOOR + Vector2(-80, -14)
+	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(sign)
 	_pile = _add_prop("fresh_kill", Vector2(840, 470), "Fresh-kill Pile")
 	_doors.append({"pos": Vector2(840, 492), "prompt": "SPACE = look", "what": "pile"})
 	_doors.append({"pos": TUNNEL, "prompt": "SPACE = leave camp", "what": "tunnel"})
@@ -66,6 +73,8 @@ func _ready() -> void:
 	_player.position = Vector2(560, 560) if GameState.met_clan else Vector2(560, 450)
 	if GameState.just_finished in ["den", "heal_clan"] and DENS.has(GameState.den):
 		_player.position = DENS[GameState.den][0] + Vector2(0, 45)
+	elif GameState.just_finished == "den" and GameState.den == "leader":
+		_player.position = LEADER_DOOR + Vector2(0, 40)
 	elif GameState.just_finished in FROM_TUNNEL:
 		_player.position = TUNNEL + Vector2(0, -40)
 	_player.bounds = CLEARING

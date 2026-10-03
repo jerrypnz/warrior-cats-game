@@ -84,6 +84,14 @@ func _draw_high_rock() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(60, -40), Vector2(140, -50), Vector2(160, -10),
 			Vector2(80, -8)]), Color("8e8aa0"))
 	draw_line(Vector2(-60, -70), Vector2(-20, -40), Color("8e8aa0"), 4.0)
+	# The leader's den: a little cave in the rock, with a curtain of lichen over the door
+	draw_colored_polygon(Fx.ellipse_points(Vector2(105, -26), Vector2(36, 30)), OUTLINE)
+	draw_colored_polygon(Fx.ellipse_points(Vector2(105, -24), Vector2(32, 26)), Color("2e2633"))
+	for k in 7:
+		var x := 78.0 + k * 9.0
+		var length := 22.0 + (k % 3) * 8.0
+		draw_line(Vector2(x, -48), Vector2(x + 2, -48 + length), Color("a8d8a0"), 4.0)
+		draw_circle(Vector2(x + 2, -48 + length), 2.5, Color("c9f0c0"))
 
 
 func _draw_fresh_kill() -> void:
