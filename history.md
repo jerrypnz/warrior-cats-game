@@ -349,3 +349,32 @@ work. And you can do things with the other player.
 - Kits could be born in the nursery so there are always new apprentices
 - A Gathering at Fourtrees with the other Clans at the full moon
 - The deputy could pick which cats go on each patrol
+
+## Session: 2026-10-04 (part 3)
+
+### What the creator asked for:
+Not as many sick cats. And mentors should actually take their apprentices out training.
+
+### What was built/changed:
+- **Fewer sick cats**: the first one comes after about a minute and a half, then only every
+  2 and a half to 3 and a half minutes, and only one sick cat at a time.
+- **Clan mentors go training**: every so often a mentor and their apprentice (like Ravenwing and
+  Brightpaw, or Tigerclaw and Thornpaw) walk out of the gorse tunnel together, down the path to
+  the **Training Hollow**, practice pounces and say things like "Watch my paws!", then walk home.
+  Mentors napping in their den wake up for it and go back to bed after. Each trip is a lesson.
+- **Take your own apprentice out training** (talk to them):
+  - **Battle training at the Training Hollow**: an arrow shows the way. When you both get there,
+    you practice pouncing, dodging and back-kicks together.
+  - **Hunting lesson in the forest**: catch 2 mice with your apprentice close by. Then they catch
+    one too, and you carry it home!
+  - **Herb lesson** (for medicine cat apprentices): pick 2 herbs with them close by, then they find
+    one by themselves.
+  - Every lesson counts. After 3 lessons your apprentice is ready for their warrior name.
+
+### What you can do now:
+- Go to the Training Hollow (down the path from camp) and watch the Clan train
+- Make a kit your own apprentice and take them hunting
+
+### What's next:
+- Kits could be born in the nursery so there are always new apprentices
+- A Gathering at Fourtrees with the other Clans at the full moon

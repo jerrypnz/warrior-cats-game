@@ -13,6 +13,7 @@ extends Node2D
 ##   leader_duties.gd  - the leader's ceremonies on the Highrock, patrols, mentors and apprentices
 ##   medicine_work.gd  - sick cats in the medicine den, and asking cats to fetch herbs
 ##   friend_play.gd    - things the two players do with each other (tag, races, sharing tongues)
+##   mentor_training.gd - mentors taking their apprentices out training
 ## The Clan remembers its ceremonies between visits (together_clan.gd).
 
 const MAP := Rect2(0, 0, 3200, 2400)
@@ -99,6 +100,7 @@ var clan: TogetherClan
 var duties: LeaderDuties
 var medicine: MedicineWork
 var play: FriendPlay
+var training: MentorTraining
 
 var _cameras: Array[Camera2D] = []
 var _prompts: Array[Label] = []
@@ -131,7 +133,8 @@ func _ready() -> void:
 	duties = LeaderDuties.new(self)
 	medicine = MedicineWork.new(self)
 	play = FriendPlay.new(self)
-	for helper in [duties, medicine, play]:
+	training = MentorTraining.new(self)
+	for helper in [duties, medicine, play, training]:
 		add_child(helper)
 
 	world = WorldFloor.new()
@@ -535,6 +538,7 @@ func _make_hud() -> void:
 	_hud.add_child(_map)
 	medicine.make_hud(_hud)
 	play.make_hud(_hud, _map)
+	training.make_hud(_hud)
 	# The menus go on their own layer, on top of everything else
 	var menu_layer := CanvasLayer.new()
 	menu_layer.layer = 5
@@ -619,7 +623,7 @@ func _nearest_spot(i: int) -> Dictionary:
 	var best := {}
 	var best_d := USE_DISTANCE
 	for npc in npcs:
-		if not npc.visible or npc.has_meta("busy"):
+		if not npc.visible or (npc.has_meta("busy") and not npc.has_meta("training")):
 			continue
 		var d := npc.talk_position().distance_to(pos)
 		if d < best_d:
@@ -700,9 +704,12 @@ func _talk(i: int, npc: Npc) -> void:
 	if npc.has_meta("patient"):
 		medicine.use_patient(i, npc)
 		return
+	if npc.has_meta("training"):
+		training.training_chat(npc)
+		return
 	var cat_name: String = npc.get_meta("base", npc.npc_name)
 	if clan.rank(cat_name) in TogetherClan.APPRENTICE_RANKS and clan.mentor(cat_name) == infos[i].name:
-		duties.talk_to_apprentice(i, npc)
+		training.talk_to_apprentice(i, npc)
 		return
 	if infos[i].medicine and medicine.can_ask(npc):
 		medicine.talk_menu(i, npc)
@@ -875,6 +882,7 @@ func _pick_herb(i: int, herb: HerbPatch) -> void:
 	herb.queue_free()
 	players[i].cat.bounce(0.3)
 	medicine.picked(i, herb.kind)
+	training.picked_herb(i, herb.kind)
 	update_carrying(i)
 	await get_tree().create_timer(3.0).timeout
 	spawn_herb()
@@ -946,6 +954,7 @@ func _catch(mouse: Mouse, i: int) -> void:
 	mouse.queue_free()
 	carrying[i] += 1
 	update_carrying(i)
+	training.caught(i)
 	Sfx.play("collect")
 	Fx.burst(world, pos + Vector2(0, -20), Color("fff27a"), 18)
 	Fx.popup_text(world, pos + Vector2(0, -70), "Take it to camp!", Color("ffd966"), 26)

@@ -1,7 +1,7 @@
 class_name MedicineWork
 extends Node
 ## The medicine cat's work in ThunderClan Together.
-##   Now and then a Clan cat feels sick and goes to lie down in the Medicine Den. A little cloud
+##   Once in a while a Clan cat feels sick and goes to lie down in the Medicine Den. A little cloud
 ##   above them shows the herb they need. Talk to them to give it from the herb store
 ##   (the shelf on your side of the screen shows how many of each herb you have).
 ##   Running low? Ask a Clan cat to fetch a herb while you keep working, or ask the other player:
@@ -11,7 +11,9 @@ extends Node
 const SICK_NESTS := [Vector2(930, 520), Vector2(1050, 410)]  # in the Medicine Den room
 const ERRAND_SIZE := 3  # herbs the other player is asked to find
 const HELPER_FINDS := 2  # herbs a Clan cat brings back
-const FIRST_SICK := 30.0  # seconds before the first cat gets sick
+const FIRST_SICK := 90.0  # seconds before the first cat gets sick
+const SICK_EVERY := [150.0, 210.0]  # then another cat gets sick every 2 and a half to 3 and a half minutes
+const MOST_SICK := 1  # only one sick cat at a time
 
 var t: Territory
 var healed := 0
@@ -53,8 +55,8 @@ func _process(delta: float) -> void:
 		return
 	_sick_timer -= delta
 	if _sick_timer <= 0.0:
-		_sick_timer = randf_range(35.0, 50.0)
-		if _patients.size() < SICK_NESTS.size():
+		_sick_timer = randf_range(SICK_EVERY[0], SICK_EVERY[1])
+		if _patients.size() < MOST_SICK:
 			_get_sick()
 
 

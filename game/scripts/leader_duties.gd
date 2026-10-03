@@ -4,7 +4,7 @@ extends Node
 ##   The leader holds Clan meetings on the Highrock: make a kit into an apprentice and choose
 ##   their mentor, give an apprentice their warrior name, choose a deputy, or send out patrols.
 ##   The deputy can send out patrols too.
-##   Mentors train their apprentices, who follow them around.
+## (Mentors taking their apprentices out training is in mentor_training.gd.)
 ## The other player can be part of it: a mentor, a new warrior, or the deputy (they say yes first).
 
 const ROCK_TOP := Vector2(630, 184)  # where the leader stands on the Highrock (in camp.gd's camp)
@@ -12,8 +12,6 @@ const STEP_FORWARD := Vector2(700, 430)  # where a cat stands below the Highrock
 const BORDER_NEWS := ["All is quiet at the border.", "We saw a RiverClan cat catching a fish!",
 		"We found a lost kittypet and showed it the way home!", "We saw WindClan cats racing across the moor!",
 		"The scent markers are fresh and strong!"]
-const BATTLE_LESSONS := ["Wow, what a pounce!", "I did a back-kick, just like you showed me!",
-		"Hiss! Was that scary? Hee hee!", "I'm getting faster every day!"]
 
 var t: Territory
 var _patrol_out := false
@@ -345,71 +343,3 @@ func send_patrol(i: int) -> void:
 func _patrol_trip(npc: Npc, back: Array) -> void:
 	await t.send_away(npc, randf_range(18.0, 24.0))
 	back[0] += 1
-
-
-# --- mentors and apprentices -------------------------------------------------------------------
-
-## Talking to your own apprentice: train together, or tell them to wait or follow you
-func talk_to_apprentice(i: int, npc: Npc) -> void:
-	var cat_name: String = npc.get_meta("base")
-	var medicine := t.clan.rank(cat_name) == "medicine_apprentice"
-	var following := npc.follow_target == t.players[i]
-	var options := ["Learn about herbs" if medicine else "Practice battle moves", "Wait here" if following else "Follow me!"]
-	if medicine:
-		options.append("Please fetch herbs")
-	options.append("Just say hi")
-	var pick: int = await t.ask(i, "%s: What are we doing today, %s?" % [npc.npc_name, _me(i)], options)
-	if pick < 0:
-		return
-	match options[pick]:
-		"Practice battle moves", "Learn about herbs":
-			await _lesson(i, npc, medicine)
-		"Wait here":
-			npc.follow_target = null
-			npc.wander_area = Rect2(npc.position - Vector2(60, 30), Vector2(120, 60))
-			Fx.speech(npc, "Okay! I'll wait right here.", 112 * npc.cat.size + 30, 2.5)
-		"Follow me!":
-			npc.wander_area = Rect2()
-			npc.follow_target = t.players[i]
-			Fx.speech(npc, "Coming, %s!" % _me(i), 112 * npc.cat.size + 30, 2.5)
-		"Please fetch herbs":
-			t.medicine.fetch_menu(i, npc)
-		_:
-			Fx.speech(npc, ["You're the best mentor in the whole forest!", "I love being your apprentice!"].pick_random(),
-					112 * npc.cat.size + 30, 2.5)
-
-
-func _lesson(i: int, npc: Npc, medicine: bool) -> void:
-	var player := t.players[i]
-	t.busy[i] = true
-	player.frozen = true
-	t.hold_npc(npc)
-	npc.face_toward(player.position)
-	player.cat.facing = signf(npc.position.x - player.position.x) if npc.position.x != player.position.x else 1.0
-	if medicine:
-		var herb: String = HerbArt.GROWING.pick_random()
-		t.say(i, HerbArt.HERBS[herb].use, 3.0)
-		await get_tree().create_timer(3.0).timeout
-		Fx.speech(npc, "%s... got it! I'll remember!" % herb, 112 * npc.cat.size + 30, 2.5)
-	else:
-		for k in 3:  # a little play-fight: hop, swat, hop!
-			var hop := create_tween()
-			hop.tween_property(npc.cat, "lift", 40.0, 0.18).set_trans(Tween.TRANS_SINE)
-			hop.tween_property(npc.cat, "lift", 0.0, 0.18).set_trans(Tween.TRANS_SINE)
-			await hop.finished
-			Sfx.play("land")
-			Fx.burst(t.world, (npc.position + player.position) / 2.0 + Vector2(0, -50), Color.WHITE, 10)
-			player.cat.bounce(0.3)
-		Fx.speech(npc, BATTLE_LESSONS.pick_random(), 112 * npc.cat.size + 30, 2.5)
-	Sfx.play("powerup")
-	Fx.hearts(t.world, npc.position + Vector2(0, -70), 8)
-	var lessons := t.clan.add_lesson(npc.get_meta("base"))
-	await get_tree().create_timer(2.5).timeout
-	if lessons == TogetherClan.LESSONS_TO_BE_READY:
-		var who := "you" if t.infos[i].leader else "the leader"
-		Fx.speech(npc, "I think I'm ready for my %s name! Will %s hold a ceremony?" % [
-				"medicine cat" if medicine else "warrior", who], 112 * npc.cat.size + 30, 4.0)
-		t.show_banner("%s is ready for their %s name!" % [npc.npc_name, "medicine cat" if medicine else "warrior"])
-	t.release_npc(npc, false)
-	player.frozen = false
-	t.busy[i] = false
