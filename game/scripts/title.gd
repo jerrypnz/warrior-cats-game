@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 		return
 	if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("action"):
 		Sfx.play("select")
-		Transition.go("res://scenes/creator.tscn")
+		Transition.go("res://scenes/slots.tscn")
 
 
 func _draw() -> void:

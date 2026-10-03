@@ -88,7 +88,12 @@ func _draw_high_rock() -> void:
 
 func _draw_fresh_kill() -> void:
 	draw_colored_polygon(Fx.ellipse_points(Vector2(0, -6), Vector2(46, 14)), Color("5c4630"))
-	for m in [Vector3(-18, -14, 0), Vector3(14, -12, 1), Vector3(-2, -26, 2)]:
+	var prey := [Vector3(-18, -14, 0), Vector3(14, -12, 1), Vector3(-2, -26, 2)]
+	# The pile grows when you bring prey home
+	var extra := [Vector3(-30, -24, 0), Vector3(26, -24, 2), Vector3(-14, -36, 1), Vector3(12, -38, 0),
+			Vector3(0, -48, 2), Vector3(-26, -36, 1), Vector3(24, -36, 0), Vector3(-6, -58, 1)]
+	prey.append_array(extra.slice(0, mini(GameState.fresh_kill, extra.size())))
+	for m in prey:
 		var c := Color("8a7a6a") if m.z != 1 else Color("a0623a")
 		draw_colored_polygon(Fx.ellipse_points(Vector2(m.x, m.y), Vector2(16, 9)), OUTLINE)
 		draw_colored_polygon(Fx.ellipse_points(Vector2(m.x, m.y), Vector2(14, 7.5)), c)

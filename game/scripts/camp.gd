@@ -16,6 +16,17 @@ var _chapter_label: Label
 var _night: CanvasModulate
 var _busy := true  # true during cutscenes
 var _decor: Array = []
+var _doors: Array = []  # places to use: dens, the gorse tunnel, the fresh-kill pile
+var _door_prompt: Label
+var _pile: CampProp
+var _cinderpaw: Follower
+
+const DENS := {
+	"warriors": [Vector2(225, 345), "Warriors' Den"], "apprentices": [Vector2(1055, 345), "Apprentices' Den"],
+	"nursery": [Vector2(250, 630), "Nursery"], "elders": [Vector2(1030, 630), "Elders' Den"],
+	"medicine": [Vector2(395, 262), "Medicine Den"],
+}
+const TUNNEL := Vector2(640, 668)
 
 
 func _ready() -> void:
@@ -32,15 +43,20 @@ func _ready() -> void:
 	add_child(_world)
 
 	var rock: CampProp = _add_prop("high_rock", Vector2(640, 300), "Highrock")
-	_add_prop("den", Vector2(225, 345), "Warriors' Den")
-	_add_prop("den", Vector2(1055, 345), "Apprentices' Den")
-	_add_prop("den", Vector2(250, 630), "Nursery")
-	_add_prop("den", Vector2(1030, 630), "Elders' Den")
-	_add_prop("medicine", Vector2(395, 262), "Medicine Den")
-	_add_prop("fresh_kill", Vector2(840, 470), "Fresh-kill Pile")
+	for key in DENS:
+		var den: Array = DENS[key]
+		_add_prop("medicine" if key == "medicine" else "den", den[0], den[1])
+		_doors.append({"pos": den[0] + Vector2(0, 22), "prompt": "SPACE = go inside", "what": "den", "den": key})
+	_pile = _add_prop("fresh_kill", Vector2(840, 470), "Fresh-kill Pile")
+	_doors.append({"pos": Vector2(840, 492), "prompt": "SPACE = look", "what": "pile"})
+	_doors.append({"pos": TUNNEL, "prompt": "SPACE = leave camp", "what": "tunnel"})
 
 	_player = TopDownPlayer.new()
 	_player.position = Vector2(560, 560) if GameState.met_clan else Vector2(560, 450)
+	if GameState.just_finished == "den" and DENS.has(GameState.den):
+		_player.position = DENS[GameState.den][0] + Vector2(0, 45)
+	elif GameState.just_finished in ["free_hunt", "teach_battle"]:
+		_player.position = TUNNEL + Vector2(0, -40)
 	_player.bounds = CLEARING
 	_player.round_bounds = true
 	_world.add_child(_player)
@@ -60,7 +76,7 @@ func _ready() -> void:
 	_add_npc("Lionheart", Vector2(340, 470))
 	_add_npc("Longtail", Vector2(190, 500), Rect2(170, 480, 70, 60))
 	_add_npc("Spottedleaf", Vector2(300, 300))
-	_add_npc("Graypaw", Vector2(950, 430), Rect2(900, 410, 160, 70))
+	_add_npc("Graypaw", Vector2(900, 420), Rect2(860, 400, 110, 60))
 	_add_npc("Ravenpaw", Vector2(1110, 470), Rect2(), -1.0)
 	_add_npc("Sandpaw", Vector2(730, 615))
 	_add_npc("Dustpaw", Vector2(815, 618), Rect2(), -1.0)
@@ -69,11 +85,19 @@ func _ready() -> void:
 		_add_npc("Yellowfang", Vector2(470, 330))
 	_add_npc("Frostfur", Vector2(380, 640))
 	if GameState.current_id() != "rescue" or GameState.just_finished == "yellowfang":
-		for kit in ["Cinderkit", "Brightkit"]:
+		for kit in ["Brightkit"] if GameState.has_apprentice else ["Cinderkit", "Brightkit"]:
 			var npc := _add_npc(kit, Vector2(450, 600), Rect2(400, 560, 150, 70))
 			npc.speed = 120.0
 			npc.hops = true
 
+	if GameState.has_apprentice:
+		_add_cinderpaw()
+
+	_door_prompt = Fx.make_label("", 22, Color("c9f7a8"), 6)
+	_door_prompt.size = Vector2(260, 30)
+	_door_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_door_prompt.z_index = 10
+	add_child(_door_prompt)
 	_dialog = DialogBox.new()
 	add_child(_dialog)
 	_make_hud()
@@ -98,6 +122,12 @@ func _add_npc(cat_name: String, pos: Vector2, wander := Rect2(), face := 1.0) ->
 	return npc
 
 
+func _add_cinderpaw() -> void:
+	_cinderpaw = Follower.make("Cinderkit", _player, 90.0)
+	_cinderpaw.cat.size = 0.72
+	_world.add_child(_cinderpaw)
+
+
 func _find(cat_name: String) -> Npc:
 	for npc in _npcs:
 		if npc.npc_name == cat_name:
@@ -119,6 +149,7 @@ func _process(_delta: float) -> void:
 		_player.frozen = true
 		for npc in _npcs:
 			npc.show_prompt(false)
+		_door_prompt.visible = false
 		return
 	_player.frozen = false
 	var nearest: Npc = null
@@ -128,16 +159,78 @@ func _process(_delta: float) -> void:
 		if d < best:
 			best = d
 			nearest = npc
+	# Is Cinderpaw, a den, the tunnel or the fresh-kill pile closer than any cat?
+	var door := {}
+	var door_best := 70.0
+	for d in _doors:
+		if d.pos.distance_to(_player.position) < door_best:
+			door_best = d.pos.distance_to(_player.position)
+			door = d
+	if _cinderpaw and _cinderpaw.position.distance_to(_player.position) < 80.0:
+		door = {"pos": _cinderpaw.position, "prompt": "SPACE = talk", "what": "cinderpaw"}
+		door_best = 0.0
+	if nearest and best <= door_best:
+		door = {}
+	else:
+		nearest = null
 	for npc in _npcs:
 		npc.show_prompt(npc == nearest)
-	if nearest and Input.is_action_just_pressed("jump"):
-		_talk(nearest)
+	if nearest:
+		_door_prompt.visible = false
+		if Input.is_action_just_pressed("jump"):
+			_talk(nearest)
+		return
+	_door_prompt.visible = not door.is_empty()
+	if door.is_empty():
+		return
+	_door_prompt.text = door.prompt
+	_door_prompt.position = door.pos + Vector2(-130, 8)
+	if Input.is_action_just_pressed("jump"):
+		_use_door(door)
+
+
+func _use_door(door: Dictionary) -> void:
+	match door.what:
+		"den":
+			Sfx.play("click")
+			GameState.den = door.den
+			Transition.go("res://scenes/den.tscn")
+		"pile":
+			var amount := "No prey yet. Let's go hunting!" if GameState.fresh_kill == 0 else \
+					"%d pieces of prey! The Clan won't go hungry." % GameState.fresh_kill
+			_dialog.say([["Fresh-kill Pile", amount]])
+		"tunnel":
+			if not GameState.is_warrior():
+				_dialog.say([["", "Apprentices can't leave camp without their mentor. Talk to Bluestar!"]])
+				return
+			_busy = true
+			_dialog.ask(GameState.cat_name(), "Go hunting in the forest?", ["Let's go!", "Not now"])
+			var pick: int = await _dialog.chosen
+			_busy = false
+			if pick == 0:
+				GameState.start_activity("free_hunt")
+		"cinderpaw":
+			_busy = true
+			_cinderpaw.cat.bounce(0.3)
+			_dialog.ask("Cinderpaw", Story.CINDERPAW_CHATS.pick_random() + " What should we do?",
+					["Go hunting!", "Battle practice!", "Just saying hi!"])
+			var pick: int = await _dialog.chosen
+			_busy = false
+			if pick == 0:
+				GameState.start_activity("free_hunt")
+			elif pick == 1:
+				GameState.start_activity("teach_battle")
+			else:
+				Fx.hearts(self, _cinderpaw.position + Vector2(0, -60), 8)
 
 
 func _talk(npc: Npc) -> void:
 	npc.face_toward(_player.global_position)
 	_player.cat.facing = signf(npc.global_position.x - _player.global_position.x)
 	Sfx.play("select")
+	if npc.npc_name == "Bluestar" and GameState.is_warrior() and not GameState.has_apprentice:
+		_apprentice_ceremony()
+		return
 	if npc.npc_name == GameState.current().get("from_camp", ""):
 		_busy = true
 		_dialog.say(Story.lines(Story.START_LINES[GameState.current_id()]))
@@ -170,7 +263,46 @@ func _enter_camp() -> void:
 		if GameState.just_finished == "ceremony":
 			_cheer(GameState.cat_name())
 		await _play_return(Story.lines(Story.RETURN_LINES[GameState.just_finished]))
+	elif GameState.just_finished == "free_hunt":
+		_pile.queue_redraw()
+		_dialog.say(Story.lines([["Smallear", "Fresh-kill! Thank you, {me}! The whole Clan will eat well tonight."]]))
+		await _dialog.finished
+	elif GameState.just_finished == "teach_battle":
+		_dialog.say(Story.lines([["Cinderpaw", "That was SO fun! I'm getting better every day, right?"]]))
+		await _dialog.finished
 	GameState.just_finished = ""
+	GameState.save_game()
+	_busy = false
+	_update_hud()
+
+
+## Bluestar makes Cinderkit an apprentice, and you are her mentor!
+func _apprentice_ceremony() -> void:
+	_busy = true
+	_update_hud()
+	_dialog.say(Story.lines([
+		["Bluestar", "{me}, you have become a fine warrior. Now it's time for you to teach others."],
+		["Bluestar", "Cinderkit, come forward. You are old enough to become an apprentice!"],
+		["Cinderkit", "Really?! YAY!"],
+		["Bluestar", "From this day on, she will be known as Cinderpaw. {me}, you will be her mentor!"],
+		["Bluestar", "Teach her everything you know: hunting, battle moves, and the warrior code."],
+	]))
+	await _dialog.finished
+	var kit := _find("Cinderkit")
+	if kit:
+		kit.wander_area = Rect2()
+		kit.hops = false
+		await kit.walk_to(_player.position + Vector2(-90, 10), 200.0)
+		_remove("Cinderkit")
+	GameState.has_apprentice = true
+	GameState.save_game()
+	_add_cinderpaw()
+	_cinderpaw.cat.bounce(0.4)
+	Sfx.play("powerup")
+	Fx.confetti(self, _cinderpaw.position + Vector2(0, -80), 60)
+	await _cheer("Cinderpaw")
+	_dialog.say(Story.lines([["Cinderpaw", "You're my mentor? This is the BEST day ever! Talk to me whenever you want to train!"]]))
+	await _dialog.finished
 	_busy = false
 	_update_hud()
 
@@ -232,9 +364,14 @@ func _update_hud() -> void:
 	var story_cat: String = GameState.current().get("from_camp", "")
 	for npc in _npcs:
 		npc.has_news = not _busy and npc.npc_name == story_cat
-	if GameState.is_warrior():
-		_chapter_label.text = "%s Warrior\nThe End... for now!" % GameState.CLAN
-		_goal_label.text = "You're a warrior! Explore the camp and visit your Clanmates."
+	if GameState.is_warrior() and not GameState.has_apprentice:
+		for npc in _npcs:
+			npc.has_news = not _busy and npc.npc_name == "Bluestar"
+		_chapter_label.text = "%s Warrior\nBluestar has news!" % GameState.CLAN
+		_goal_label.text = "Bluestar wants to talk to you! (look for the yellow !)"
+	elif GameState.is_warrior():
+		_chapter_label.text = "%s Warrior\nCinderpaw's lessons: %d" % [GameState.CLAN, GameState.apprentice_lessons]
+		_goal_label.text = "Talk to Cinderpaw to train her, go hunting through the tunnel, or visit the dens!"
 	else:
 		var title: String = GameState.current().get("title", "")
 		_chapter_label.text = "%s Apprentice\nNext: %s" % [GameState.CLAN, title.get_slice(": ", 1)]

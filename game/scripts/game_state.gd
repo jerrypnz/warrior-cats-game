@@ -73,6 +73,15 @@ const CATS := {
 	"Dustpaw": {"fur": Color("a06a42"), "markings": Color("5a3622"), "pattern": "Tabby Stripes", "eyes": Color("f2a531"), "size": 0.85, "mood": "grumpy"},
 	"Yellowfang": {"fur": Color("5e5862"), "markings": Color("45404d"), "pattern": "Solid", "eyes": Color("f08a24"), "size": 1.05, "fluffy": true, "mood": "grumpy"},
 	"Smudge": {"fur": Color("35303a"), "markings": Color("fffdf8"), "pattern": "Socks", "eyes": Color("5fd14a"), "size": 1.1},
+	"Whitestorm": {"fur": Color("fbf8f2"), "markings": Color("dfe6f0"), "pattern": "Solid", "eyes": Color("f5d63a"), "size": 1.2, "fluffy": true},
+	"Mousefur": {"fur": Color("8a6a52"), "markings": Color("5a3622"), "pattern": "Solid", "eyes": Color("f2a531"), "size": 0.95, "mood": "grumpy"},
+	"Darkstripe": {"fur": Color("5d6170"), "markings": Color("2e2a33"), "pattern": "Tabby Stripes", "eyes": Color("f5d63a"), "size": 1.1, "mood": "grumpy"},
+	"Goldenflower": {"fur": Color("f3c98e"), "markings": Color("e0a530"), "pattern": "Tabby Stripes", "eyes": Color("f2a531"), "size": 1.05, "fluffy": true},
+	"Brackenkit": {"fur": Color("c8904a"), "markings": Color("8a5a2a"), "pattern": "Tabby Stripes", "eyes": Color("f2a531"), "size": 0.55},
+	"Thornkit": {"fur": Color("d9a35a"), "markings": Color("8a5a2a"), "pattern": "Spots", "eyes": Color("5fd14a"), "size": 0.55},
+	"One-eye": {"fur": Color("cfcbd6"), "markings": Color("9aa0aa"), "pattern": "Solid", "eyes": Color("4fb3f0"), "size": 0.95},
+	"Halftail": {"fur": Color("6e4a32"), "markings": Color("3a2620"), "pattern": "Tabby Stripes", "eyes": Color("f5d63a"), "size": 1.0},
+	"Patchpelt": {"fur": Color("fbf8f2"), "markings": Color("35303a"), "pattern": "Patches", "eyes": Color("5fd14a"), "size": 0.95},
 	"RiverClan warrior": {"fur": Color("b8c4d6"), "markings": Color("6c7a90"), "pattern": "Tabby Stripes", "eyes": Color("4fb3f0"), "size": 1.1, "mood": "grumpy"},
 	"ShadowClan warrior": {"fur": Color("4a4552"), "markings": Color("2e2a33"), "pattern": "Tabby Stripes", "eyes": Color("f5d63a"), "size": 1.1, "mood": "grumpy"},
 }
@@ -90,6 +99,9 @@ const STORY := [
 	{"id": "ceremony", "scene": "res://scenes/ceremony.tscn", "title": "Chapter 9: Warrior Ceremony", "from_camp": "Bluestar"},
 ]
 
+const SAVE_SLOTS := 3
+const MAX_PAINT := 5000  # most brush dabs we keep
+
 var fur_index := 0
 var marking_index := 0
 var pattern_index := 1
@@ -97,10 +109,18 @@ var eye_index := 0
 var fluffy := false
 var prefix_index := 0
 var personality_index := 0
+var paint: Array = []  # brush dabs painted on your cat: [position, color, radius]
 
 var step := 0  # which part of the story we're on
 var met_clan := false  # the apprentice ceremony in camp has happened
-var just_finished := ""  # story step finished right before coming back to camp
+var fresh_kill := 0  # prey you've brought back to the fresh-kill pile
+var has_apprentice := false  # Cinderkit became your apprentice, Cinderpaw
+var apprentice_lessons := 0  # how many times you've trained Cinderpaw
+
+var slot := 0  # which save slot we're playing in
+var just_finished := ""  # what you just did, right before coming back to camp
+var activity := ""  # "free_hunt" or "teach_battle" when it's not part of the story
+var den := ""  # which den you're visiting
 
 
 func look() -> Dictionary:
@@ -111,6 +131,16 @@ func look() -> Dictionary:
 		"eyes": EYE_COLORS[eye_index].color,
 		"fluffy": fluffy,
 	}
+
+
+## Makes your cat, with its looks, paint and collar
+func make_player_cat() -> Cat:
+	var cat := Cat.new()
+	cat.set_look(look())
+	cat.paint = paint
+	cat.size = cat_size()
+	cat.collar = is_kittypet()
+	return cat
 
 
 func personality() -> Dictionary:
@@ -152,13 +182,14 @@ func current() -> Dictionary:
 
 
 func current_id() -> String:
-	return current().get("id", "")
+	return activity if activity != "" else current().get("id", "")
 
 
 ## Finish this part of the story and go to wherever the story goes next.
 func complete_step() -> void:
 	just_finished = current_id()
 	step += 1
+	save_game()
 	var next := current()
 	if next.is_empty() or next.has("from_camp"):
 		Transition.go("res://scenes/camp.tscn")
@@ -167,7 +198,23 @@ func complete_step() -> void:
 
 
 func start_step() -> void:
+	activity = ""
 	Transition.go(current().scene)
+
+
+## Warrior things to do that aren't part of the story (hunting on your own, training Cinderpaw)
+func start_activity(what: String) -> void:
+	activity = what
+	Transition.go("res://scenes/duel.tscn" if what == "teach_battle" else "res://scenes/hunting.tscn")
+
+
+func finish_activity() -> void:
+	just_finished = activity
+	if has_apprentice:
+		apprentice_lessons += 1
+	activity = ""
+	save_game()
+	Transition.go("res://scenes/camp.tscn")
 
 
 func randomize_cat() -> void:
@@ -178,3 +225,86 @@ func randomize_cat() -> void:
 	fluffy = randf() < 0.5
 	prefix_index = randi() % NAME_PREFIXES.size()
 	personality_index = randi() % PERSONALITIES.size()
+
+
+# --- save slots ----------------------------------------------------------------------------
+
+const SAVED := ["fur_index", "marking_index", "pattern_index", "eye_index", "fluffy", "prefix_index",
+		"personality_index", "step", "met_clan", "fresh_kill", "has_apprentice", "apprentice_lessons"]
+
+
+func _slot_path(i: int) -> String:
+	return "user://save_%d.json" % i
+
+
+## Starts a brand new cat in a slot
+func new_game(i: int) -> void:
+	met_clan = false
+	var fresh: Node = get_script().new()
+	for key in SAVED:
+		set(key, fresh.get(key))
+	fresh.free()
+	paint = []
+	slot = i
+	just_finished = ""
+	activity = ""
+
+
+func save_game() -> void:
+	var data := {}
+	for key in SAVED:
+		data[key] = get(key)
+	var dabs := []
+	for dab in paint:
+		dabs.append([dab[0].x, dab[0].y, dab[1].to_html(), dab[2]])
+	data["paint"] = dabs
+	var file := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(data))
+
+
+## What's saved in a slot (empty if nothing is saved there)
+func read_slot(i: int) -> Dictionary:
+	if not FileAccess.file_exists(_slot_path(i)):
+		return {}
+	var data = JSON.parse_string(FileAccess.get_file_as_string(_slot_path(i)))
+	return data if data is Dictionary else {}
+
+
+func load_game(i: int) -> bool:
+	var data := read_slot(i)
+	if data.is_empty():
+		return false
+	new_game(i)
+	for key in SAVED:
+		if data.has(key):
+			set(key, type_convert(data[key], typeof(get(key))))
+	for dab in data.get("paint", []):
+		paint.append([Vector2(dab[0], dab[1]), Color.html(dab[2]), float(dab[3])])
+	return true
+
+
+func erase_slot(i: int) -> void:
+	if FileAccess.file_exists(_slot_path(i)):
+		DirAccess.remove_absolute(_slot_path(i))
+
+
+## Go to wherever this save left off
+func continue_game() -> void:
+	if met_clan or is_warrior():
+		Transition.go("res://scenes/camp.tscn")
+	else:
+		start_step()
+
+
+## Name, looks and progress of a saved cat, for the save slot screen (empty if no save)
+func describe_slot(i: int) -> Dictionary:
+	if read_slot(i).is_empty():
+		return {}
+	var saved: Node = get_script().new()
+	saved.load_game(i)
+	var progress := "%s Warrior!" % CLAN if saved.is_warrior() else str(saved.current().get("title", ""))
+	var info := {"name": saved.cat_name(), "look": saved.look(), "paint": saved.paint,
+			"progress": progress, "size": saved.cat_size(), "kittypet": saved.is_kittypet()}
+	saved.free()
+	return info

@@ -9,9 +9,12 @@ const ROWS := [
 	{"title": "Fur Length", "key": "fluffy"},
 	{"title": "Name", "key": "prefix"},
 	{"title": "Personality", "key": "personality"},
+	{"title": "Paint with a Brush!", "key": "paint"},
 	{"title": "Surprise Me!", "key": "random"},
 	{"title": "I'm Ready!", "key": "done"},
 ]
+
+const BUTTONS := ["paint", "random", "done"]
 
 var _selected := 0
 var _cat: Cat
@@ -51,20 +54,20 @@ func _ready() -> void:
 func _add_row(ui: CanvasLayer, i: int) -> void:
 	var row: Dictionary = ROWS[i]
 	var panel := Panel.new()
-	panel.position = Vector2(620, 14 + i * 76)
-	panel.size = Vector2(620, 66)
+	panel.position = Vector2(620, 8 + i * 70.5)
+	panel.size = Vector2(620, 62)
 	ui.add_child(panel)
 	_row_panels.append(panel)
-	var is_button: bool = row.key in ["random", "done"]
+	var is_button: bool = row.key in BUTTONS
 	var title := Fx.ink_label(row.title, 30 if is_button else 26, Fx.PINK_DARK)
-	title.position = Vector2(20, 14)
+	title.position = Vector2(20, 12)
 	if is_button:
 		title.size = Vector2(620, 40)
-		title.position = Vector2(0, 12)
+		title.position = Vector2(0, 10)
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(title)
 	var value := Fx.ink_label("", 28)
-	value.position = Vector2(230, 12)
+	value.position = Vector2(230, 10)
 	value.size = Vector2(320, 40)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(value)
@@ -114,7 +117,7 @@ func _process(delta: float) -> void:
 	elif Input.is_action_just_pressed("move_left"):
 		_change(-1)
 	elif Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("action"):
-		if ROWS[_selected].key in ["random", "done"]:
+		if ROWS[_selected].key in BUTTONS:
 			_activate()
 		else:
 			_select(_selected + 1)
@@ -144,7 +147,10 @@ func _change(dir: int) -> void:
 
 
 func _activate() -> void:
-	if ROWS[_selected].key == "random":
+	if ROWS[_selected].key == "paint":
+		Sfx.play("select")
+		Transition.go("res://scenes/paint.tscn")
+	elif ROWS[_selected].key == "random":
 		GameState.randomize_cat()
 		Sfx.play("powerup")
 		_cat.bounce(0.3)
@@ -155,19 +161,21 @@ func _activate() -> void:
 		_cat.bounce(0.35)
 		Fx.confetti(self, Vector2(300, 420))
 		GameState.step = 0
+		GameState.save_game()
 		GameState.start_step()
 
 
 func _refresh() -> void:
 	var gs := GameState
 	_cat.set_look(gs.look())
+	_cat.paint = gs.paint
 	_name_label.text = gs.apprentice_name()
 	var p: Dictionary = gs.personality()
 	_about_label.text = "%s: %s" % [p.name, p.about]
 	var values := [gs.FUR_COLORS[gs.fur_index].name, gs.MARKING_COLORS[gs.marking_index].name,
 			gs.PATTERNS[gs.pattern_index], gs.EYE_COLORS[gs.eye_index].name,
 			"Fluffy" if gs.fluffy else "Short", gs.prefix() + "-",
-			p.name, "", ""]
+			p.name, "", "", ""]
 	for i in ROWS.size():
 		_row_values[i].text = values[i]
 		_row_panels[i].add_theme_stylebox_override("panel", _selected_style if i == _selected else _normal_style)

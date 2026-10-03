@@ -25,10 +25,7 @@ func _ready() -> void:
 	shape.shape = rect
 	shape.position = Vector2(0, -22)
 	add_child(shape)
-	cat = Cat.new()
-	cat.set_look(GameState.look())
-	cat.size = GameState.cat_size()
-	cat.collar = GameState.is_kittypet()
+	cat = GameState.make_player_cat()
 	add_child(cat)
 	name_label = Fx.make_label(GameState.cat_name(), 24, Color("ffd966"), 6)
 	name_label.size = Vector2(300, 36)

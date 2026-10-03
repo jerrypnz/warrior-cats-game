@@ -56,8 +56,7 @@ func _ready() -> void:
 	_graypaw.position = Vector2(540, 640)
 	_world.add_child(_graypaw)
 
-	_player_cat = Cat.new()
-	_player_cat.set_look(GameState.look())
+	_player_cat = GameState.make_player_cat()
 	_player_cat.size = 0.9
 	_player_cat.facing = -1.0
 	_player_cat.position = Vector2(730, 640)

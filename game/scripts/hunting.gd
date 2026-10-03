@@ -6,7 +6,13 @@ const MEADOW := Rect2(80, 250, 1120, 440)
 const CATCH_DISTANCE := 70.0
 const SCARE_DISTANCE := 115.0
 
+const HOME_TUNNEL := Vector2(70, 465)  # free hunting: walk in here to go home
 const SETUPS := {
+	"free_hunt": {
+		"goal": 9999, "place": "forest", "watcher": "", "mice": 6, "free": true,
+		"intro": "Hunt as much as you like! Every mouse goes to the fresh-kill pile.\n\nWhen you're done, walk into the tunnel on the left to go home.",
+		"score": "Prey caught: %d",
+	},
 	"first_mouse": {
 		"goal": 1, "place": "forest", "watcher": "", "mice": 2,
 		"intro": "The forest is full of amazing smells... and a MOUSE!\n\nYou've never hunted before. Creep up close, then press SPACE to POUNCE!",
@@ -38,6 +44,7 @@ const SETUPS := {
 var _setup: Dictionary
 var _world: Node2D
 var _player: TopDownPlayer
+var _cinderpaw: Follower
 var _watcher: Npc
 var _mice: Array[Mouse] = []
 var _caught := 0
@@ -71,6 +78,10 @@ func _ready() -> void:
 	_player.frozen = true
 	_world.add_child(_player)
 
+	if GameState.activity == "free_hunt" and GameState.has_apprentice:
+		_cinderpaw = Follower.make("Cinderkit", _player, 90.0)
+		_cinderpaw.cat.size = 0.72
+		_world.add_child(_cinderpaw)
 	if _setup.watcher != "":
 		_watcher = Npc.make(_setup.watcher)
 		_watcher.position = Vector2(640, 300) if _setup.place == "snakerocks" else Vector2(110, 280)
@@ -89,7 +100,8 @@ func _ready() -> void:
 	add_child(_dialog)
 	_card = InfoCard.new()
 	add_child(_card)
-	_card.show_card(GameState.current().get("title", "Hunting!"), _setup.intro, "Press SPACE to start!")
+	var title: String = "Hunting!" if _setup.has("free") else GameState.current().get("title", "Hunting!")
+	_card.show_card(title, _setup.intro, "Press SPACE to start!")
 	await _card.closed
 	if _setup.has("before"):
 		_dialog.say(Story.lines(_setup.before))
@@ -117,6 +129,12 @@ func _process(_delta: float) -> void:
 			_catch(mouse)
 		elif not _player.is_pouncing() and d < SCARE_DISTANCE and _player.cat.walk_amount > 0.3:
 			mouse.scare(paws)
+		elif _cinderpaw and mouse.global_position.distance_to(_cinderpaw.position) < 60 and randf() < 0.02:
+			_cinderpaw.cat.bounce(0.4)
+			Fx.speech(_cinderpaw, "I got one!", 100.0, 1.2)
+			_catch(mouse)
+	if _setup.has("free") and _player.position.distance_to(HOME_TUNNEL) < 90:
+		_go_home()
 
 
 func _catch(mouse: Mouse) -> void:
@@ -148,7 +166,22 @@ func _catch(mouse: Mouse) -> void:
 
 func _update_score() -> void:
 	var text: String = _setup.score
-	_score_label.text = text % [_caught, _setup.goal] if "%d" in text else text
+	if _setup.has("free"):
+		_score_label.text = text % _caught
+	else:
+		_score_label.text = text % [_caught, _setup.goal] if "%d" in text else text
+
+
+func _go_home() -> void:
+	_playing = false
+	_player.frozen = true
+	Sfx.play("win")
+	GameState.fresh_kill += _caught
+	var body := "You didn't catch anything this time. Better luck next time!" if _caught == 0 else \
+			"You caught %d prey for the Clan!\nIt goes on the fresh-kill pile." % _caught
+	_card.show_card("Back to Camp!", body, "Press SPACE")
+	await _card.closed
+	GameState.finish_activity()
 
 
 func _win() -> void:
@@ -192,4 +225,14 @@ func _draw() -> void:
 			Scenery.rock(self, p, 1.6, Color("b8b4bd"))
 		draw_string(ThemeDB.fallback_font, Vector2(540, 160), "Snakerocks", HORIZONTAL_ALIGNMENT_CENTER, 200, 26, Fx.INK)
 	for p in [Vector2(40, 720), Vector2(1240, 720), Vector2(30, 420), Vector2(1250, 400)]:
+		if _setup.has("free") and p.x < 100 and p.y < 500:
+			continue
 		Scenery.bush(self, p, 1.3, Color("6fb85a"), true)
+	if _setup.has("free"):
+		# The gorse tunnel back to camp
+		for k in 7:
+			var a := PI + PI * k / 6.0
+			draw_circle(HOME_TUNNEL + Vector2(cos(a) * 60, sin(a) * 70), 26, Color("4f8f45"))
+			draw_circle(HOME_TUNNEL + Vector2(cos(a) * 60, sin(a) * 70) + Vector2(8, -10), 5, Color("ffd23f"))
+		draw_colored_polygon(Fx.ellipse_points(HOME_TUNNEL + Vector2(0, -10), Vector2(38, 45)), Color("3a2a2a"))
+		draw_string(ThemeDB.fallback_font, HOME_TUNNEL + Vector2(-40, 70), "Camp", HORIZONTAL_ALIGNMENT_CENTER, 120, 26, Fx.INK)

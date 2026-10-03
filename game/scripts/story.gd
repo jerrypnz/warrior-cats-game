@@ -100,6 +100,18 @@ const CHATS := {
 	"Yellowfang": ["Stop staring and fetch me some moss, youngster!", "Hmph. You're not so bad, {me}."],
 	"Bluestar": ["StarClan is watching over you, {me}.", "Remember: a warrior protects the Clan and helps cats in need."],
 }
+const DEN_CHATS := {
+	"Darkstripe": ["Hmph. What do you want?", "Tigerclaw is the greatest warrior in the whole forest."],
+	"Brackenkit": ["Shh! Goldenflower is sleeping!", "I'm going to be the bravest warrior EVER!"],
+	"Halftail": ["Want to hear a story? Long ago, LionClan and TigerClan lived in the forest!",
+			"When I was young, I chased a dog all the way back to Twolegplace!"],
+	"Cinderpaw": ["This is the best den ever!", "Let's go on an adventure, {me}!"],
+}
+
+## What Cinderpaw says when you talk to her
+const CINDERPAW_CHATS := ["You're the best mentor in the whole forest!", "I practiced my pounce all morning!",
+		"Do you think I'll be a warrior one day?", "Let's do something fun!"]
+
 const WARRIOR_CHATS := {
 	"Tigerclaw": ["Hmph. You did well, {me}. I suppose you're a real warrior now."],
 	"Longtail": ["Fine, fine. You're a real warrior. I'm sorry I called you a kittypet."],
@@ -130,4 +142,6 @@ static func lines(raw: Array) -> Array:
 static func display_name(cat_name: String) -> String:
 	if cat_name == "Graypaw" and GameState.is_warrior():
 		return "Graystripe"
+	if cat_name == "Cinderkit" and GameState.has_apprentice:
+		return "Cinderpaw"
 	return cat_name

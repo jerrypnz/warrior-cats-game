@@ -73,3 +73,29 @@ your mentor, and border patrol should be in a group.
 - Book 2 adventures? (Bringing WindClan home, becoming a mentor)
 - Pick a different Clan
 - Draw your cat on paper and put it in the game
+
+## Session: 2026-10-03 (part 3)
+
+### What the creator asked for:
+Go inside the dens, hunt on your own as a warrior, get your own apprentice, paint your cat with
+a brush, and save slots.
+
+### What was built/changed:
+- **Save slots**: 3 slots on a new screen after the title. Each shows your cat, its name and
+  how far you got. The game saves by itself as you play. Erase asks "Sure?" first.
+- **Paint with a Brush!**: a new button in the cat designer. 16 colors, 3 brush sizes, eraser,
+  undo and clear. The paint stays inside your cat's outline and shows up everywhere in the game.
+- **Dens you can go inside**: Warriors' Den, Apprentices' Den, Nursery, Elders' Den and the
+  Medicine Den. Cats nap in mossy nests (with floating Zzz's!). New book cats: Whitestorm,
+  Mousefur, Darkstripe, Goldenflower, Brackenkit, Thornkit, One-eye, Halftail, Patchpelt.
+  Learn about herbs in the Medicine Den, and take a nap in your own nest to have a dream.
+- **Your own apprentice**: after you become a warrior, Bluestar makes Cinderkit into Cinderpaw,
+  and YOU are her mentor (like Fireheart in the book). She follows you everywhere.
+  Talk to her to go hunting together or teach her battle moves.
+- **Warrior hunting**: walk out the gorse tunnel at the bottom of camp to hunt as much as you
+  like. Your prey goes on the fresh-kill pile, which gets bigger!
+
+### What's next:
+- Cinderpaw's warrior ceremony after lots of lessons?
+- Book 2: bringing WindClan home
+- More dens to decorate, or a moss-ball game with the kits

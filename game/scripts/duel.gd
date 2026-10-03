@@ -8,6 +8,12 @@ const TAG_DISTANCE := 85.0
 const BUMP_DISTANCE := 55.0
 
 const SETUPS := {
+	"teach_battle": {
+		"opponent": "Cinderkit", "rename": "Cinderpaw", "goal": 3, "place": "hollow", "speed": 0.8, "dodge": 0.15,
+		"intro": "Now YOU are the mentor! Show Cinderpaw your battle moves.\n\nDodge when she crouches, then POUNCE when she's tired!",
+		"before": [["Cinderpaw", "I'm ready, {me}! Teach me everything!"]],
+		"tips": ["Whoa, you're fast!", "I'll get you this time!", "Hee hee!", "Teach me that move!"],
+	},
 	"graypaw": {
 		"opponent": "Graypaw", "goal": 3, "place": "forest", "speed": 0.8, "dodge": 0.1,
 		"intro": "A young gray cat jumps out of the bushes! Don't worry, it's only a play-fight.\n\nWhen he crouches, get out of the way! When he's tired, POUNCE on him!",
@@ -66,6 +72,9 @@ func _ready() -> void:
 	_player.frozen = true
 	_world.add_child(_player)
 	_foe = Npc.make(_setup.opponent, -1.0)
+	if _setup.has("rename"):
+		_foe.rename(_setup.rename)
+		_foe.cat.size = 0.72
 	_foe.position = Vector2(860, 480)
 	_world.add_child(_foe)
 
@@ -79,7 +88,8 @@ func _ready() -> void:
 	add_child(_dialog)
 	_card = InfoCard.new()
 	add_child(_card)
-	_card.show_card(GameState.current().get("title", "Battle Practice!"), _setup.intro, "Press SPACE to start!")
+	var title: String = "Teach Cinderpaw!" if _setup.has("rename") else GameState.current().get("title", "Battle Practice!")
+	_card.show_card(title, _setup.intro, "Press SPACE to start!")
 	await _card.closed
 	_dialog.say(Story.lines(_setup.before))
 	await _dialog.finished
@@ -193,7 +203,7 @@ func _bump() -> void:
 
 
 func _update_score() -> void:
-	_score_label.text = "Pounces on %s: %d / %d" % [_setup.opponent, _tags, _setup.goal]
+	_score_label.text = "Pounces on %s: %d / %d" % [_foe.npc_name, _tags, _setup.goal]
 
 
 func _win() -> void:
@@ -203,6 +213,11 @@ func _win() -> void:
 	Fx.confetti(self, Vector2(640, 300), 80)
 	_foe.cat.walk_amount = 0.0
 	await get_tree().create_timer(1.0).timeout
+	if GameState.activity == "teach_battle":
+		_dialog.say(Story.lines([["Cinderpaw", "Wow! You're the best mentor in the whole forest, {me}!"]]))
+		await _dialog.finished
+		GameState.finish_activity()
+		return
 	if GameState.current_id() == "graypaw":
 		await _meet_the_clan()
 	else:
