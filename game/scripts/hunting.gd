@@ -44,7 +44,7 @@ const SETUPS := {
 var _setup: Dictionary
 var _world: Node2D
 var _player: TopDownPlayer
-var _cinderpaw: Follower
+var _helpers: Array[Follower] = []  # Cinderpaw and friends who hunt with you
 var _watcher: Npc
 var _mice: Array[Mouse] = []
 var _caught := 0
@@ -79,9 +79,16 @@ func _ready() -> void:
 	_world.add_child(_player)
 
 	if GameState.activity == "free_hunt" and GameState.apprentice_following():
-		_cinderpaw = Follower.make("Cinderkit", _player, 90.0)
-		_cinderpaw.cat.size = 0.72
-		_world.add_child(_cinderpaw)
+		var cinderpaw := Follower.make("Cinderkit", _player, 90.0)
+		cinderpaw.cat.size = 0.72
+		_helpers.append(cinderpaw)
+	if GameState.activity == "free_hunt" and GameState.hunt_buddy >= 0:
+		# A friend from another save slot came along!
+		var friend := GameState.describe_slot(GameState.hunt_buddy)
+		if not friend.is_empty():
+			_helpers.append(Follower.make_custom(friend.name, friend.look, friend.size, _player, 180.0, friend.paint))
+	for helper in _helpers:
+		_world.add_child(helper)
 	if _setup.watcher != "":
 		_watcher = Npc.make(_setup.watcher)
 		_watcher.position = Vector2(640, 300) if _setup.place == "snakerocks" else Vector2(110, 280)
@@ -129,10 +136,13 @@ func _process(_delta: float) -> void:
 			_catch(mouse)
 		elif not _player.is_pouncing() and d < SCARE_DISTANCE and _player.cat.walk_amount > 0.3:
 			mouse.scare(paws)
-		elif _cinderpaw and mouse.global_position.distance_to(_cinderpaw.position) < 60 and randf() < 0.02:
-			_cinderpaw.cat.bounce(0.4)
-			Fx.speech(_cinderpaw, "I got one!", 100.0, 1.2)
-			_catch(mouse)
+		else:
+			for helper in _helpers:
+				if mouse.global_position.distance_to(helper.position) < 60 and randf() < 0.02:
+					helper.cat.bounce(0.4)
+					Fx.speech(helper, "I got one!", 112 * helper.cat.size, 1.2)
+					_catch(mouse)
+					break
 	if _setup.has("free") and _player.position.distance_to(HOME_TUNNEL) < 90:
 		_go_home()
 

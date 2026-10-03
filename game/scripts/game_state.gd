@@ -166,6 +166,7 @@ var slot := 0  # which save slot we're playing in
 var just_finished := ""  # what you just did, right before coming back to camp
 var activity := ""  # "free_hunt" or "teach_battle" when it's not part of the story
 var den := ""  # which den you're visiting
+var hunt_buddy := -1  # the slot of a friend who came hunting with you (-1 = nobody)
 
 
 func look() -> Dictionary:
@@ -338,6 +339,7 @@ func finish_activity() -> void:
 	if rank == "deputy" and activity in ["free_hunt", "lead_patrol"]:
 		deputy_tasks += 1
 	activity = ""
+	hunt_buddy = -1
 	save_game()
 	Transition.go("res://scenes/camp.tscn")
 
@@ -415,6 +417,7 @@ func load_game(i: int) -> bool:
 func erase_slot(i: int) -> void:
 	if FileAccess.file_exists(_slot_path(i)):
 		DirAccess.remove_absolute(_slot_path(i))
+	forget_friends(i)
 
 
 ## Go to wherever this save left off
@@ -433,6 +436,68 @@ func describe_slot(i: int) -> Dictionary:
 	saved.load_game(i)
 	var progress: String = saved.rank_title() + "!" if saved.is_grown() else str(saved.current().get("title", ""))
 	var info := {"name": saved.cat_name(), "look": saved.look(), "paint": saved.paint,
-			"progress": progress, "size": saved.cat_size(), "kittypet": saved.is_kittypet()}
+			"progress": progress, "size": saved.cat_size(), "kittypet": saved.is_kittypet(),
+			"slot": i, "title": saved.rank_title(), "grown": saved.is_grown()}
 	saved.free()
 	return info
+
+
+# --- friends from other save slots ----------------------------------------------------------
+# Everyone who plays on this computer has their own save slot. Their cats visit each other's
+# camps, and can become friends. Friendships are shared by all the slots.
+
+const FRIENDS_PATH := "user://friends.json"
+
+
+## Every friendship, as pairs of slots like [0, 2]
+func friend_pairs() -> Array:
+	if not FileAccess.file_exists(FRIENDS_PATH):
+		return []
+	var data = JSON.parse_string(FileAccess.get_file_as_string(FRIENDS_PATH))
+	return data if data is Array else []
+
+
+func _save_friend_pairs(pairs: Array) -> void:
+	var file := FileAccess.open(FRIENDS_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(pairs))
+
+
+func are_friends(a: int, b: int) -> bool:
+	return friends_of(a).has(b)
+
+
+func make_friends(a: int, b: int) -> void:
+	if a == b or are_friends(a, b):
+		return
+	var pairs := friend_pairs()
+	pairs.append([a, b])
+	_save_friend_pairs(pairs)
+
+
+## The slots that are friends with slot i
+func friends_of(i: int) -> Array:
+	var friends := []
+	for pair in friend_pairs():
+		if int(pair[0]) == i:
+			friends.append(int(pair[1]))
+		elif int(pair[1]) == i:
+			friends.append(int(pair[0]))
+	return friends
+
+
+## A cat was erased (or a new cat starts in its slot), so its friendships go too
+func forget_friends(i: int) -> void:
+	_save_friend_pairs(friend_pairs().filter(func(pair): return int(pair[0]) != i and int(pair[1]) != i))
+
+
+## Cats from the other save slots who have joined ThunderClan (they visit your camp)
+func visiting_cats() -> Array:
+	var cats := []
+	for i in SAVE_SLOTS:
+		if i == slot:
+			continue
+		var info := describe_slot(i)
+		if not info.is_empty() and not info.kittypet:
+			cats.append(info)
+	return cats

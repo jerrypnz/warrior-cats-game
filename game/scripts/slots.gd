@@ -82,7 +82,27 @@ func _build() -> void:
 			_go())
 		card.add_child(erase)
 		_erase_buttons.append(erase)
+	_show_friends()
 	_refresh()
+
+
+## Under each slot's title: the cats from other slots it is friends with
+func _show_friends() -> void:
+	for i in _cards.size():
+		if _infos[i].is_empty():
+			continue
+		var names := []
+		for f in GameState.friends_of(i):
+			if f < _infos.size() and not _infos[f].is_empty():
+				names.append(_infos[f].name)
+		if names.is_empty():
+			continue
+		var label := Fx.ink_label("Friends: " + ", ".join(names), 20, Fx.PINK_DARK)
+		label.position = Vector2(14, 56)
+		label.size = Vector2(332, 30)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_cards[i].add_child(label)
 
 
 func _make_button(text: String, color: Color, pos: Vector2) -> Button:
@@ -152,6 +172,7 @@ func _go() -> void:
 	if GameState.load_game(_selected):
 		GameState.continue_game()
 	else:
+		GameState.forget_friends(_selected)  # a brand new cat starts with no friends yet
 		GameState.new_game(_selected)
 		Transition.go("res://scenes/creator.tscn")
 

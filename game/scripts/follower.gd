@@ -11,14 +11,21 @@ var _trail: Array[Vector2] = []
 
 
 static func make(cat_name: String, follow: Node2D, distance: float) -> Follower:
-	var f := Follower.new()
 	var data: Dictionary = GameState.CATS[cat_name]
-	f.display_name = Story.display_name(cat_name)
+	return make_custom(Story.display_name(cat_name), data, data.get("size", 1.0), follow, distance)
+
+
+## A follower that looks however you like (like a friend's cat from another save slot)
+static func make_custom(shown_name: String, look: Dictionary, cat_size: float, follow: Node2D, distance: float,
+		paint := []) -> Follower:
+	var f := Follower.new()
+	f.display_name = shown_name
 	f.leader = follow
 	f.gap = distance
 	f.cat = Cat.new()
-	f.cat.set_look(data)
-	f.cat.size = data.get("size", 1.0)
+	f.cat.set_look(look)
+	f.cat.paint = paint
+	f.cat.size = cat_size
 	f.add_child(f.cat)
 	var label := Fx.make_label(f.display_name, 20, Color.WHITE, 6)
 	label.size = Vector2(240, 30)

@@ -164,3 +164,29 @@ A leader's den.
 ### What's next:
 - Have the deputy come and visit the leader's den with news
 - More treasures to collect on patrols and bring home to the den
+
+## Session: 2026-10-03 (part 6)
+
+### What the creator asked for:
+Make it multiplayer, so you can friend people playing in other save slots.
+
+### What was built/changed:
+- **Friends from other slots**: everyone who plays on this computer has their own slot. Their
+  cats now come to visit YOUR camp (once they've joined ThunderClan), with their own colors,
+  paint and names, like Starlingstar or Cinderpelt.
+- Talk to a visitor and they say hi and ask "Do you want to be friends?"
+- Friendships work both ways: if Slot 1 friends Slot 2, Slot 2's cat is friends with Slot 1 too
+- With a friend you can **Hunt together** (they follow you into the forest and catch mice too!),
+  **Share tongues** (lots of purring and hearts), or just say hi
+- The save slot screen shows each cat's friends
+- Erasing a slot (or starting a new cat there) clears that slot's friendships
+- Real online play with strangers isn't part of the game, to keep it safe. It's for family and
+  friends who play on the same computer.
+
+### What you can do now:
+- Go to camp with one cat and look for visitors from the other slots. Make friends!
+
+### What's next:
+- Two players on the same keyboard at once?
+- Give your friends gifts from the fresh-kill pile
+- Friends come along on border patrols too

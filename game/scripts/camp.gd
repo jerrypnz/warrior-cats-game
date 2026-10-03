@@ -119,6 +119,8 @@ func _ready() -> void:
 	if GameState.deputy_name == "Whitestorm":
 		_add_npc("Whitestorm", Vector2(760, 400), Rect2(720, 380, 120, 50))
 
+	if GameState.met_clan and GameState.current_id() != "rescue":
+		_add_visitors()
 	if GameState.apprentice_following():
 		_add_cinderpaw()
 
@@ -149,6 +151,22 @@ func _add_npc(cat_name: String, pos: Vector2, wander := Rect2(), face := 1.0) ->
 	_world.add_child(npc)
 	_npcs.append(npc)
 	return npc
+
+
+## Cats from the other save slots come to visit (they belong to whoever else plays on this computer)
+func _add_visitors() -> void:
+	var spots := [[Vector2(880, 335), Rect2(860, 320, 50, 25)], [Vector2(720, 480), Rect2(690, 460, 70, 40)]]
+	for info in GameState.visiting_cats():
+		if spots.is_empty():
+			return
+		var spot: Array = spots.pop_front()
+		var npc := Npc.new().setup(info.name, info.look, info.size, -1.0)
+		npc.cat.paint = info.paint
+		npc.position = spot[0]
+		npc.wander_area = spot[1]
+		npc.set_meta("visitor", info)
+		_world.add_child(npc)
+		_npcs.append(npc)
 
 
 func _add_kit(kit_name: String) -> void:
@@ -294,6 +312,9 @@ func _talk(npc: Npc) -> void:
 	npc.face_toward(_player.global_position)
 	_player.cat.facing = signf(npc.global_position.x - _player.global_position.x)
 	Sfx.play("select")
+	if npc.has_meta("visitor"):
+		_visit(npc)
+		return
 	var news := GameState.waiting_news()
 	if not news.is_empty() and npc.npc_name == news[1]:
 		_big_news(news[0])
@@ -305,6 +326,55 @@ func _talk(npc: Npc) -> void:
 		GameState.start_step()
 		return
 	_dialog.say([[npc.npc_name, Story.chat(npc.npc_name)]])
+
+
+## Talking to a cat from another save slot: make friends, then hunt or share tongues together
+func _visit(npc: Npc) -> void:
+	var gs := GameState
+	var info: Dictionary = npc.get_meta("visitor")
+	var friend: String = info.name
+	_busy = true
+	if not gs.are_friends(gs.slot, info.slot):
+		_dialog.say(Story.lines([[friend, "Hi, {me}! I'm %s from Slot %d. I'm a %s!" % [friend, info.slot + 1, info.title]]]))
+		await _dialog.finished
+		var yes: int = await _ask(friend, "Do you want to be friends?", ["Yes! Let's be friends!", "Maybe later"])
+		if yes == 0:
+			gs.make_friends(gs.slot, info.slot)
+			Sfx.play("powerup")
+			npc.cat.bounce(0.5)
+			_player.cat.bounce(0.4)
+			Fx.hearts(self, npc.position + Vector2(0, -70), 16)
+			Fx.hearts(self, _player.position + Vector2(0, -70), 10)
+			Fx.popup_text(self, npc.position + Vector2(0, -170), "New friend!", Color("ffd966"))
+			_busy = true
+			_dialog.say(Story.lines([[friend, "Yay! Best friends forever, {me}!"]]))
+			await _dialog.finished
+		_busy = false
+		return
+	var pick: int = await _ask(friend, Story.fill(Story.FRIEND_CHATS.pick_random()),
+			["Hunt together!", "Share tongues", "Just saying hi!"])
+	match pick:
+		0:
+			if not gs.is_grown():
+				_dialog.say([[friend, "Apprentices can't leave camp without a mentor. Let's hunt together when we're older!"]])
+				return
+			gs.hunt_buddy = info.slot
+			_busy = true
+			gs.start_activity("free_hunt")
+		1:
+			# Cats groom each other's fur to show they're friends
+			Sfx.play("collect", 0.8)
+			_busy = true
+			for k in 3:
+				npc.cat.bounce(0.2)
+				_player.cat.bounce(0.2)
+				Fx.hearts(self, (npc.position + _player.position) / 2.0 + Vector2(0, -80), 6)
+				await get_tree().create_timer(0.35).timeout
+			_busy = false
+			Fx.popup_text(self, npc.position + Vector2(0, -170), "Purrrr...", Color("ffd966"))
+			_dialog.say(Story.lines([[friend, "*purr* You're the best friend in the whole Clan, {me}!"]]))
+		_:
+			Fx.hearts(self, npc.position + Vector2(0, -70), 8)
 
 
 # --- cutscenes -----------------------------------------------------------------------------

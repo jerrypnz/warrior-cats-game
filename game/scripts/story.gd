@@ -250,6 +250,10 @@ const LEADER_CHATS := {
 	"Whitestorm": ["ThunderClan is lucky to have you, {me}."],
 	"Frostfur": ["My kits want to be just like you when they grow up, {me}!"],
 }
+## What your friends from other save slots say
+const FRIEND_CHATS := ["Hi, best friend! What should we do?", "I'm so happy to see you, {me}! What should we do today?",
+		"Guess what? I saw a HUGE squirrel! Want to do something together?", "Hello, {me}! Let's play!"]
+
 ## The deputy you chose
 const DEPUTY_CHAT := ["I'll be the best deputy ever, {me}!", "The patrols are all ready, {me}!"]
 
