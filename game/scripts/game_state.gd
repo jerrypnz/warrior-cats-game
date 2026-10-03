@@ -167,6 +167,7 @@ var just_finished := ""  # what you just did, right before coming back to camp
 var activity := ""  # "free_hunt" or "teach_battle" when it's not part of the story
 var den := ""  # which den you're visiting
 var hunt_buddy := -1  # the slot of a friend who came hunting with you (-1 = nobody)
+var together: Array = []  # two players on one keyboard: [Player 1's slot, Player 2's slot]
 
 
 func look() -> Dictionary:
@@ -489,6 +490,25 @@ func friends_of(i: int) -> Array:
 ## A cat was erased (or a new cat starts in its slot), so its friendships go too
 func forget_friends(i: int) -> void:
 	_save_friend_pairs(friend_pairs().filter(func(pair): return int(pair[0]) != i and int(pair[1]) != i))
+
+
+## Puts prey on the fresh-kill pile of the cat saved in slot i (after playing together)
+func add_prey_to_slot(i: int, amount: int) -> void:
+	var saved: Node = get_script().new()
+	if saved.load_game(i):
+		saved.fresh_kill += amount
+		saved.save_game()
+	saved.free()
+
+
+## Every saved cat (for picking who plays together)
+func all_saved_cats() -> Array:
+	var cats := []
+	for i in SAVE_SLOTS:
+		var info := describe_slot(i)
+		if not info.is_empty():
+			cats.append(info)
+	return cats
 
 
 ## Cats from the other save slots who have joined ThunderClan (they visit your camp)

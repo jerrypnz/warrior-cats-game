@@ -32,10 +32,11 @@ func _ready() -> void:
 
 	var ui := CanvasLayer.new()
 	add_child(ui)
-	ui.add_child(Fx.centered_label("WARRIOR CATS", 96, Color("ffd966"), 70))
-	ui.add_child(Fx.centered_label("Into the Wild", 44, Color("fff6ec"), 190))
-	_start_label = Fx.centered_label("Press SPACE to start!", 40, Color("9be37a"), 270)
+	ui.add_child(Fx.centered_label("WARRIOR CATS", 96, Color("ffd966"), 46))
+	ui.add_child(Fx.centered_label("Into the Wild", 44, Color("fff6ec"), 164))
+	_start_label = Fx.centered_label("Press SPACE to start!", 40, Color("9be37a"), 230)
 	ui.add_child(_start_label)
+	ui.add_child(Fx.centered_label("2 players?  Player 2 presses E to play together!", 28, Color("ffb3c8"), 282))
 	var controls := Fx.centered_label("Arrows = walk and choose    SPACE = jump, pounce, talk, OK    ESC = menu", 26,
 			Color("f6e8c8"), 660)
 	ui.add_child(controls)
@@ -50,6 +51,10 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("action"):
 		Sfx.play("select")
 		Transition.go("res://scenes/slots.tscn")
+	elif Input.is_action_just_pressed("p2_pounce"):
+		# Player 2 joins in! Both players pick their cats next.
+		Sfx.play("powerup")
+		Transition.go("res://scenes/together_pick.tscn")
 
 
 func _draw() -> void:

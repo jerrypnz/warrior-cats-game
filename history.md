@@ -190,3 +190,29 @@ Make it multiplayer, so you can friend people playing in other save slots.
 - Two players on the same keyboard at once?
 - Give your friends gifts from the fresh-kill pile
 - Friends come along on border patrols too
+
+## Session: 2026-10-03 (part 7)
+
+### What the creator asked for:
+Two players on the same keyboard with split screen, Player 2 using W A S D. And: how do you
+invite someone in?
+
+### What was built/changed:
+- **Inviting someone in**: on the title screen, Player 2 presses **E** to join
+- **Play Together picking screen**: Player 1 picks a cat with LEFT/RIGHT and presses SPACE when
+  ready. Player 2 picks with A/D and presses E. You each need a cat in a save slot.
+- **Hunting Together** (split screen!): the left half follows Player 1, the right half follows
+  Player 2, in one big forest with a pond, bushes and rocks. 75 seconds to catch as many mice as
+  you can.
+  - Player 1: arrows to walk, SPACE to pounce
+  - Player 2: W A S D to walk, E to pounce
+- At the end: who caught the most, and everyone's mice go on each cat's own fresh-kill pile.
+  Playing together makes the two cats friends.
+- Made Cinderpelt and Starlingstar friends (asked for by the creator)
+
+### What you can do now:
+- Get a friend or family member, press E on the title screen, and hunt together!
+
+### What's next:
+- More two-player games: a moss-ball battle, or a race along the border
+- Explore the camp together in split screen

@@ -18,6 +18,8 @@ var blockers: Array[Rect2] = []
 var frozen := false
 var can_pounce := false
 var can_swipe := false
+var controls := ""  # "" = the normal keys, "p1" or "p2" when two players share the keyboard
+var custom := {}  # a cat from a save slot (from GameState.describe_slot) instead of your own cat
 
 var _pounce_left := 0.0
 var _pounce_dir := Vector2.RIGHT
@@ -26,9 +28,18 @@ var _swipe_left := 0.0
 
 
 func _ready() -> void:
-	cat = GameState.make_player_cat()
+	var shown_name := GameState.cat_name()
+	if custom.is_empty():
+		cat = GameState.make_player_cat()
+	else:
+		cat = Cat.new()
+		cat.set_look(custom.look)
+		cat.paint = custom.paint
+		cat.size = custom.size
+		cat.collar = custom.kittypet
+		shown_name = custom.name
 	add_child(cat)
-	name_label = Fx.make_label(GameState.cat_name(), 24, Color("ffd966"), 6)
+	name_label = Fx.make_label(shown_name, 24, Color("ffd966"), 6)
 	name_label.size = Vector2(300, 36)
 	name_label.position = Vector2(-150, -112 * cat.size - 34)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -65,14 +76,14 @@ func _process(delta: float) -> void:
 		cat.walk_amount = move_toward(cat.walk_amount, 0.0, delta * 6.0)
 		return
 
-	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var dir := Input.get_vector(_key("left"), _key("right"), _key("up"), _key("down"))
 	position += dir * speed * delta
 	position = _keep_inside(position)
 	cat.walk_amount = move_toward(cat.walk_amount, 1.0 if dir != Vector2.ZERO else 0.0, delta * 6.0)
 	if absf(dir.x) > 0.1:
 		cat.facing = signf(dir.x)
 
-	if Input.is_action_just_pressed("jump") and _cooldown <= 0.0:
+	if Input.is_action_just_pressed(_key("pounce")) and _cooldown <= 0.0:
 		if can_pounce:
 			_pounce_dir = dir.normalized() if dir != Vector2.ZERO else Vector2(cat.facing, 0)
 			_pounce_left = POUNCE_TIME
@@ -84,6 +95,13 @@ func _process(delta: float) -> void:
 			cat.bounce(0.2)
 			Sfx.play("click", 0.7)
 			swiped.emit()
+
+
+## The input action for this cat: "left" -> "move_left" normally, or "p2_left" for Player 2
+func _key(what: String) -> String:
+	if controls != "":
+		return controls + "_" + what
+	return "jump" if what == "pounce" else "move_" + what
 
 
 func _keep_inside(p: Vector2) -> Vector2:
