@@ -1,8 +1,9 @@
 class_name TogetherClan
 extends RefCounted
 ## The Clan in ThunderClan Together (the two-player world). It remembers the ceremonies held
-## there: kits who became apprentices, new warriors and their mentors, the deputy, and the herbs
-## in the medicine den. (Each player's own rank still comes from their save slot.)
+## there: kits who became apprentices, new warriors and their mentors, the deputy, the herbs
+## in the medicine den, and the new kits born in the nursery.
+## (Each player's own rank still comes from their save slot.)
 
 const PATH := "user://together_clan.json"
 
@@ -21,7 +22,9 @@ const BOOK_ENDINGS := {"Cinderkit": "pelt", "Brightkit": "heart", "Brackenkit": 
 const APPRENTICE_RANKS := ["apprentice", "medicine_apprentice"]
 const LESSONS_TO_BE_READY := 3
 
-var cats := {}  # cats who changed since the start: cat -> {"name", "rank", "mentor", "lessons"}
+## Cats who changed since the start: cat -> {"name", "rank", "mentor", "lessons"}
+## (kits born here also have "look" and "mother")
+var cats := {}
 var deputy := ""
 var herbs := {}  # herb -> how many are in the medicine den
 
@@ -72,8 +75,32 @@ func is_mentoring(who: String) -> bool:
 
 ## A ceremony gave this cat a new name and rank
 func set_cat(cat: String, new_name: String, new_rank: String, new_mentor := "") -> void:
-	cats[cat] = {"name": new_name, "rank": new_rank, "mentor": new_mentor, "lessons": 0}
+	var entry: Dictionary = cats.get(cat, {})
+	entry.merge({"name": new_name, "rank": new_rank, "mentor": new_mentor, "lessons": 0}, true)
+	cats[cat] = entry
 	save()
+
+
+## A new kit was born in the nursery. look is like GameState.look(), with colors as "#rrggbb".
+func add_kit(kit_name: String, look: Dictionary, mother: String) -> void:
+	cats[kit_name] = {"name": kit_name, "rank": "kit", "mentor": "", "lessons": 0, "look": look, "mother": mother}
+	save()
+
+
+## True for kits born here (not cats from the book)
+func born_here(cat: String) -> bool:
+	return cats.get(cat, {}).has("look")
+
+
+func born_cats() -> Array:
+	return cats.keys().filter(born_here)
+
+
+## What a kit born here looks like (ready for Cat.set_look)
+func look(cat: String) -> Dictionary:
+	var saved: Dictionary = cats[cat].look
+	return {"fur": Color.html(saved.fur), "markings": Color.html(saved.markings), "pattern": saved.pattern,
+			"eyes": Color.html(saved.eyes), "fluffy": saved.fluffy}
 
 
 func add_lesson(cat: String) -> int:

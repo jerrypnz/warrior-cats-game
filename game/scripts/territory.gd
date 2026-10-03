@@ -14,15 +14,18 @@ extends Node2D
 ##   medicine_work.gd  - sick cats in the medicine den, and asking cats to fetch herbs
 ##   friend_play.gd    - things the two players do with each other (tag, races, sharing tongues)
 ##   mentor_training.gd - mentors taking their apprentices out training
+##   nursery.gd         - new kits being born
 ## The Clan remembers its ceremonies between visits (together_clan.gd).
 
 const MAP := Rect2(0, 0, 3200, 2400)
 const WALK := Rect2(210, 150, 2900, 2160)  # where cats can go (the river is on the left)
 const CAMP := Vector2(1600, 1150)  # middle of the camp
-const CAMP_RADII := Vector2(640, 335)  # the gorse wall around the camp
-const OFFSET := CAMP - Vector2(640, 440)  # moves things from camp.gd's camp into this world
-const TUNNEL := CAMP + Vector2(0, 290)  # just inside the gorse tunnel
-const OUTSIDE := CAMP + Vector2(0, 540)  # just outside it, on the path
+const CAMP_SCALE := 1.5  # this camp is bigger than the one-player camp (camp.gd), so there's room to play
+const CAMP_RADII := Vector2(640, 335) * CAMP_SCALE  # the gorse wall around the camp
+const CAMP_MIDDLE := Vector2(640, 440)  # the middle of camp.gd's camp
+const ROCK := Vector2(640, 300)  # where the Highrock is in camp.gd's camp
+const TUNNEL := CAMP + Vector2(0, 457)  # just inside the gorse tunnel (at the bottom of the camp)
+const OUTSIDE := CAMP + Vector2(0, 690)  # just outside it, on the path
 const USE_DISTANCE := 90.0
 const CATCH_DISTANCE := 70.0
 const SCARE_DISTANCE := 115.0
@@ -42,8 +45,8 @@ const PLACES := [
 	["Training Hollow", Vector2(1600, 2020), Vector2.INF],
 ]
 ## Where mice live (out in the forest, not in camp)
-const MOUSE_ZONES := [Rect2(320, 260, 2560, 420), Rect2(320, 1620, 2560, 600), Rect2(260, 760, 560, 800),
-		Rect2(2380, 760, 620, 800)]
+const MOUSE_ZONES := [Rect2(320, 260, 2560, 360), Rect2(320, 1700, 2560, 520), Rect2(260, 760, 360, 800),
+		Rect2(2600, 760, 480, 800)]
 ## The dens, in the same places as in the camp scene (camp.gd)
 const DENS := {
 	"warriors": [Vector2(225, 345), "Warriors' Den"], "apprentices": [Vector2(1055, 345), "Apprentices' Den"],
@@ -76,6 +79,8 @@ const RANK_AREAS := {
 }
 ## What Clan cats say once a ceremony has changed their rank
 const RANK_CHATS := {
+	"kit": ["Mew! Do you want to play with me, {me}?", "When I grow up, I want to be just like you, {me}!",
+			"Wheee! Chase me!", "Is it true there are mice BIGGER than me?"],
 	"apprentice": ["I'm an apprentice now! {mentor} is teaching me SO much!", "Want to see my hunter's crouch? Wiggle wiggle... POUNCE!"],
 	"medicine_apprentice": ["{mentor} is teaching me all about herbs!", "Marigold for scratches, catmint for coughs!"],
 	"warrior": ["I'm a warrior now! I'll always look after the Clan.", "Thank you for my warrior name, {leader}!"],
@@ -101,6 +106,7 @@ var duties: LeaderDuties
 var medicine: MedicineWork
 var play: FriendPlay
 var training: MentorTraining
+var nursery: Nursery
 
 var _cameras: Array[Camera2D] = []
 var _prompts: Array[Label] = []
@@ -134,7 +140,8 @@ func _ready() -> void:
 	medicine = MedicineWork.new(self)
 	play = FriendPlay.new(self)
 	training = MentorTraining.new(self)
-	for helper in [duties, medicine, play, training]:
+	nursery = Nursery.new(self)
+	for helper in [duties, medicine, play, training, nursery]:
 		add_child(helper)
 
 	world = WorldFloor.new()
@@ -185,7 +192,7 @@ func _ready() -> void:
 # --- building the world --------------------------------------------------------------------
 
 func _build_camp() -> void:
-	var rock := _add_prop("high_rock", Vector2(640, 300) + OFFSET, "Highrock")
+	var rock := _add_prop("high_rock", camp_pos(ROCK), "Highrock")
 	# Cats who retired because one of the players took their place
 	var retired := []
 	if leader_name() != "":
@@ -195,52 +202,62 @@ func _build_camp() -> void:
 	if infos.any(func(c): return c.rank == "head"):
 		retired.append("Spottedleaf")
 	if not "Bluestar" in retired:
-		var bluestar := _make_clan_cat("Bluestar")
+		var bluestar := make_clan_cat("Bluestar")
 		bluestar.position = Vector2(-10, -136)
 		bluestar.talk_spot = Vector2(0, 175)
 		rock.add_child(bluestar)
 		npcs.append(bluestar)
 	var elder_spots := [Vector2(870, 650), Vector2(1170, 545), Vector2(800, 670)]
 	for who in retired:
-		var elder := _make_clan_cat(who, -1.0)
-		elder.position = elder_spots.pop_front() + OFFSET
+		var elder := make_clan_cat(who, -1.0)
+		elder.position = camp_pos(elder_spots.pop_front())
 		elder.set_meta("retired", true)
 		world.add_child(elder)
 		npcs.append(elder)
-	_spots.append({"pos": Vector2(530, 352) + OFFSET, "what": "rock"})
-	_spots.append({"pos": Vector2(748, 322) + OFFSET, "what": "den", "den": "leader"})
-	doors["leader"] = Vector2(748, 322) + OFFSET
+	_spots.append({"pos": by_rock(Vector2(530, 352)), "what": "rock"})
+	_spots.append({"pos": by_rock(Vector2(748, 322)), "what": "den", "den": "leader"})
+	doors["leader"] = by_rock(Vector2(748, 322))
 	for key in DENS:
 		var den: Array = DENS[key]
-		_add_prop("medicine" if key == "medicine" else "den", den[0] + OFFSET, den[1])
-		_spots.append({"pos": den[0] + OFFSET + Vector2(0, 22), "what": "den", "den": key})
-		doors[key] = den[0] + OFFSET + Vector2(0, 22)
-	_pile = _add_prop("fresh_kill", Vector2(840, 470) + OFFSET, "Fresh-kill Pile")
-	_spots.append({"pos": Vector2(840, 492) + OFFSET, "what": "pile"})
+		_add_prop("medicine" if key == "medicine" else "den", camp_pos(den[0]), den[1])
+		_spots.append({"pos": camp_pos(den[0]) + Vector2(0, 22), "what": "den", "den": key})
+		doors[key] = camp_pos(den[0]) + Vector2(0, 22)
+	_pile = _add_prop("fresh_kill", camp_pos(Vector2(840, 470)), "Fresh-kill Pile")
+	_spots.append({"pos": camp_pos(Vector2(840, 470)) + Vector2(0, 22), "what": "pile"})
 	for c in CLAN:
 		if c[0] in retired:
 			continue
-		var npc := _make_clan_cat(c[0], [-1.0, 1.0].pick_random())
-		npc.position = c[1] + OFFSET
+		var npc := make_clan_cat(c[0], [-1.0, 1.0].pick_random())
+		npc.position = camp_pos(c[1])
 		var area: Rect2 = c[2]
 		if area.has_area():
-			npc.wander_area = Rect2(area.position + OFFSET, area.size)
+			npc.wander_area = camp_area(area)
+		world.add_child(npc)
+		npcs.append(npc)
+	# Kits born in the nursery here (and the cats they grew up into)
+	for cat_name in clan.born_cats():
+		var npc := make_clan_cat(cat_name, [-1.0, 1.0].pick_random())
+		npc.position = camp_pos(RANK_AREAS.get(clan.rank(cat_name), RANK_AREAS.warrior).get_center())
 		world.add_child(npc)
 		npcs.append(npc)
 	# Den cats who grew up (or became deputy) live out in camp now
 	for key in Den.DENS:
 		for c in Den.DENS[key].cats:
 			if _lives_in_camp(c[0]):
-				var npc := _make_clan_cat(c[0], [-1.0, 1.0].pick_random())
+				var npc := make_clan_cat(c[0], [-1.0, 1.0].pick_random())
 				var area: Rect2 = RANK_AREAS.get(clan.rank(c[0]), RANK_AREAS.warrior)
-				npc.position = area.get_center() + OFFSET
+				npc.position = camp_pos(area.get_center())
 				world.add_child(npc)
 				npcs.append(npc)
 
 
 ## A cat from the story, with the name and size the Clan remembers for them
-func _make_clan_cat(cat_name: String, face := 1.0) -> Npc:
-	var npc := Npc.make(cat_name, face)
+func make_clan_cat(cat_name: String, face := 1.0) -> Npc:
+	var npc: Npc
+	if clan.born_here(cat_name):
+		npc = Npc.new().setup(cat_name, clan.look(cat_name), 1.0, face)
+	else:
+		npc = Npc.make(cat_name, face)
 	npc.set_meta("base", cat_name)
 	if clan.cats.has(cat_name):
 		npc.rename(clan.shown_name(cat_name))
@@ -272,7 +289,7 @@ func settle(npc: Npc) -> void:
 				return
 	if clan.cats.has(cat_name) or cat_name == clan.deputy:
 		var area: Rect2 = RANK_AREAS.get(rank, RANK_AREAS.warrior)
-		npc.wander_area = Rect2(area.position + OFFSET, area.size)
+		npc.wander_area = camp_area(area)
 
 
 ## Who the deputy is: a player who is deputy in their own game, or whoever the Clan chose
@@ -317,13 +334,27 @@ func _add_prop(kind: String, pos: Vector2, label: String) -> CampProp:
 ## The prickly gorse wall around camp: blocks you everywhere except the tunnel at the bottom
 func _gorse_wall() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	for k in 72:
-		var a := TAU * k / 72.0
-		if absf(a - PI / 2) < 0.14:
+	for k in 100:
+		var a := TAU * k / 100.0
+		if absf(a - PI / 2) < 0.1:
 			continue
 		var p := CAMP + Vector2(cos(a) * CAMP_RADII.x, sin(a) * CAMP_RADII.y)
-		rects.append(Rect2(p - Vector2(40, 40), Vector2(80, 80)))
+		rects.append(Rect2(p - Vector2(45, 45), Vector2(90, 90)))
 	return rects
+
+
+## Moves a place in camp.gd's camp into this world's (bigger) camp
+static func camp_pos(p: Vector2) -> Vector2:
+	return CAMP + (p - CAMP_MIDDLE) * CAMP_SCALE
+
+
+static func camp_area(area: Rect2) -> Rect2:
+	return Rect2(camp_pos(area.position), area.size * CAMP_SCALE)
+
+
+## A place right next to the Highrock. The rock doesn't get bigger, so these stay close to it.
+static func by_rock(p: Vector2) -> Vector2:
+	return camp_pos(ROCK) + (p - ROCK)
 
 
 ## The inside of every den, each one a room in the same world
@@ -363,7 +394,7 @@ func _build_rooms() -> void:
 		for c in den.cats:
 			if _lives_in_camp(c[0]):
 				continue
-			var npc := _make_clan_cat(c[0], [-1.0, 1.0].pick_random())
+			var npc := make_clan_cat(c[0], [-1.0, 1.0].pick_random())
 			npc.position = c[1]
 			npc.cat.sleeping = c[2]
 			npc.set_meta("den_cat", true)
@@ -784,7 +815,7 @@ func camp_cats(ranks: Array) -> Array[Npc]:
 	for npc in npcs:
 		if npc.get_parent() == world and npc.visible and not npc.has_meta("busy") and npc.follow_target == null \
 				and not npc.has_meta("patient") and not npc.has_meta("retired") \
-				and clan.rank(npc.get_meta("base", "")) in ranks and npc.position.distance_to(CAMP) < 700:
+				and clan.rank(npc.get_meta("base", "")) in ranks and npc.position.distance_to(CAMP) < 700 * CAMP_SCALE:
 			found.append(npc)
 	return found
 
@@ -890,7 +921,7 @@ func _pick_herb(i: int, herb: HerbPatch) -> void:
 
 func cheer(text: String) -> void:
 	for npc in npcs:
-		if npc.visible and (npc.position.distance_to(CAMP) < 900 or npc.get_parent() is CampProp):
+		if npc.visible and (npc.position.distance_to(CAMP) < 900 * CAMP_SCALE or npc.get_parent() is CampProp):
 			Fx.popup_text(world, npc.global_position + Vector2(0, -130), text, Color("ffd966"), 24)
 			npc.cat.bounce(0.25)
 
@@ -1010,8 +1041,10 @@ class WorldFloor extends Node2D:
 			draw_line(Vector2(40 + (y % 3) * 30, y), Vector2(80 + (y % 3) * 30, y), Color("d6f0ff"), 3.0)
 		draw_string(ThemeDB.fallback_font, Vector2(20, 1210), "RiverClan", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color.WHITE)
 		# Sandy path from the camp tunnel down to the training hollow
-		for k in 12:
-			draw_circle(CAMP + Vector2(0, 360 + k * 45), 34, Color("dcc69a"))
+		var y := CAMP.y + CAMP_RADII.y - 20
+		while y < PLACES[5][1].y - 100:
+			draw_circle(Vector2(CAMP.x, y), 34, Color("dcc69a"))
+			y += 45
 		draw_colored_polygon(Fx.ellipse_points(PLACES[5][1], Vector2(260, 140)), Color("e9d6a8"))
 		seed(77)
 		for i in 500:
@@ -1023,11 +1056,11 @@ class WorldFloor extends Node2D:
 				3: Scenery.flower(self, p, Color("f7a8c8"))
 				4: Scenery.flower(self, p, Color("fff3a0"))
 		# The camp: a sandy clearing in a ravine, with a gorse wall and the tunnel at the bottom
-		draw_colored_polygon(Fx.ellipse_points(CAMP, Vector2(610, 320), 48), Color("a8d88a"))
-		draw_colored_polygon(Fx.ellipse_points(CAMP + Vector2(0, 10), Vector2(560, 280), 48), Color("f3dfb5"))
-		for k in 64:
-			var a := TAU * k / 64.0
-			if absf(a - PI / 2) < 0.12:
+		draw_colored_polygon(Fx.ellipse_points(CAMP, CAMP_RADII - Vector2(30, 15), 64), Color("a8d88a"))
+		draw_colored_polygon(Fx.ellipse_points(CAMP + Vector2(0, 10), CAMP_RADII - Vector2(80, 55), 64), Color("f3dfb5"))
+		for k in 96:
+			var a := TAU * k / 96.0
+			if absf(a - PI / 2) < 0.08:
 				continue
 			var p := CAMP + Vector2(cos(a) * CAMP_RADII.x, sin(a) * CAMP_RADII.y)
 			draw_circle(p, 46, Color("4f8f45"))

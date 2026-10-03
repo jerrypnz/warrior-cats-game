@@ -95,7 +95,7 @@ func _ceremony(i: int, cat: Npc, lines: Array, named: Callable, banner: String, 
 	var back := leader.position
 	leader.z_index = 5
 	var up := create_tween()
-	up.tween_property(leader, "position", ROCK_TOP + Territory.OFFSET + Vector2(-60 + i * 120, 0), 0.5) \
+	up.tween_property(leader, "position", Territory.by_rock(ROCK_TOP) + Vector2(-60 + i * 120, 0), 0.5) \
 			.set_trans(Tween.TRANS_BACK)
 	await up.finished
 	Sfx.play("jump")
@@ -103,7 +103,7 @@ func _ceremony(i: int, cat: Npc, lines: Array, named: Callable, banner: String, 
 	if cat:
 		t.bring_to_camp(cat)
 		t.hold_npc(cat)
-		await cat.walk_to(STEP_FORWARD + Territory.OFFSET)
+		await cat.walk_to(Territory.by_rock(STEP_FORWARD))
 		cat.face_toward(leader.position)
 	var speaker: Node2D = cat if cat else (t.players[player_cat] if player_cat >= 0 else leader)
 	for line in lines:

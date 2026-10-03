@@ -77,7 +77,7 @@ func _get_sick() -> void:
 	await cat.walk_to(t.doors["medicine"])
 	cat.visible = false
 	# Now they're lying in a sick cats' nest in the Medicine Den
-	var sick := Npc.make(cat.get_meta("base"), -1.0)
+	var sick := t.make_clan_cat(cat.get_meta("base"), -1.0)
 	sick.rename(cat.npc_name)
 	sick.resize(cat.cat.size)
 	sick.position = SICK_NESTS[nest]

@@ -378,3 +378,27 @@ Not as many sick cats. And mentors should actually take their apprentices out tr
 ### What's next:
 - Kits could be born in the nursery so there are always new apprentices
 - A Gathering at Fourtrees with the other Clans at the full moon
+
+## Session: 2026-10-04 (part 4)
+
+### What the creator asked for:
+New kits should be born often (we ran out of kits!), and the camp should be bigger.
+
+### What was built/changed:
+- **New kits are born**: about every minute or so, Frostfur or Goldenflower has a new kit in the
+  nursery (while there are fewer than 5 kits). Each kit gets its own name (like Willowkit or
+  Sorrelkit) and its own fur, markings and eye color. A banner says "Goldenflower has a new kit:
+  Willowkit!", the kit says "Mew! Hello, ThunderClan!" and the Clan cheers.
+- If there are no kits at all, one is born very soon after you start.
+- New kits are part of the Clan for good: the leader can make them apprentices, they can train,
+  and later get their warrior names. They're still there the next time you play together.
+- **Bigger camp**: the camp in ThunderClan Together is one and a half times bigger. The dens,
+  Highrock and fresh-kill pile are spread out more, and there's lots more room to walk around.
+  (The one-player camp is the same as before.)
+
+### What you can do now:
+- Wait by the nursery for a new kit, then make it an apprentice at the Highrock
+
+### What's next:
+- A Gathering at Fourtrees with the other Clans at the full moon
+- Kits could play moss-ball with you
