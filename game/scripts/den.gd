@@ -1,3 +1,4 @@
+class_name Den
 extends Node2D
 ## Inside a den! Cats nap in mossy nests. Visit your own nest to take a nap,
 ## or look at the herbs in the medicine den. Walk out the bottom to go back to camp.
@@ -251,64 +252,69 @@ func _nap() -> void:
 
 
 func _draw() -> void:
-	var wall: Color = _den.wall
-	draw_rect(Rect2(0, 0, 1280, 720), wall.darkened(0.45))
+	draw_room(self, _den)
+
+
+## Draws the inside of a den (used here and in the two-player world)
+static func draw_room(c: CanvasItem, den: Dictionary) -> void:
+	var wall: Color = den.wall
+	c.draw_rect(Rect2(0, 0, 1280, 720), wall.darkened(0.45))
 	# Leafy walls curving overhead (or rock, for the leader's cave)
-	var cave: bool = _den.get("cave", false)
+	var cave: bool = den.get("cave", false)
 	for i in 40:
 		var a := PI + PI * i / 39.0
 		var p := Vector2(640, 520) + Vector2(cos(a) * 640, sin(a) * 420)
 		if cave:
-			Scenery.rock(self, p + Vector2(0, 50), 2.2 + (i % 3) * 0.3, wall.lightened((i % 4) * 0.06))
+			Scenery.rock(c, p + Vector2(0, 50), 2.2 + (i % 3) * 0.3, wall.lightened((i % 4) * 0.06))
 		else:
-			draw_circle(p, 70, wall.darkened(0.15))
-			draw_circle(p + Vector2(-8, -8), 50, wall)
+			c.draw_circle(p, 70, wall.darkened(0.15))
+			c.draw_circle(p + Vector2(-8, -8), 50, wall)
 	# Sunlight coming through the leaves
 	for x in [380.0, 700.0, 960.0]:
-		draw_colored_polygon(PackedVector2Array([Vector2(x - 20, 120), Vector2(x + 20, 120), Vector2(x + 90, 640),
+		c.draw_colored_polygon(PackedVector2Array([Vector2(x - 20, 120), Vector2(x + 20, 120), Vector2(x + 90, 640),
 				Vector2(x - 10, 640)]), Color(1, 0.95, 0.7, 0.08))
 	# The floor
-	draw_colored_polygon(Fx.ellipse_points(Vector2(640, 460), Vector2(520, 240), 48), Color("c9a86a"))
-	draw_colored_polygon(Fx.ellipse_points(Vector2(640, 465), Vector2(500, 225), 48), Color("e3c896"))
+	c.draw_colored_polygon(Fx.ellipse_points(Vector2(640, 460), Vector2(520, 240), 48), Color("c9a86a"))
+	c.draw_colored_polygon(Fx.ellipse_points(Vector2(640, 465), Vector2(500, 225), 48), Color("e3c896"))
 	# Way out
-	draw_colored_polygon(Fx.ellipse_points(EXIT + Vector2(0, 30), Vector2(90, 50)), Color("f3dfb5"))
-	draw_string(ThemeDB.fallback_font, EXIT + Vector2(-60, 10), "To camp", HORIZONTAL_ALIGNMENT_CENTER, 120, 22, Fx.INK)
-	for thing in _den.get("treasures", []):
-		_draw_treasure(thing[0], thing[1], thing[3])
+	c.draw_colored_polygon(Fx.ellipse_points(EXIT + Vector2(0, 30), Vector2(90, 50)), Color("f3dfb5"))
+	c.draw_string(ThemeDB.fallback_font, EXIT + Vector2(-60, 10), "To camp", HORIZONTAL_ALIGNMENT_CENTER, 120, 22, Fx.INK)
+	for thing in den.get("treasures", []):
+		_draw_treasure(c, thing[0], thing[1], thing[3])
 	if cave:
 		# The curtain of lichen hanging over the way out
 		for k in 16:
 			var x := EXIT.x - 90 + k * 12
 			var length := 40.0 + (k * 37 % 5) * 10.0 + sin(Time.get_ticks_msec() / 700.0 + k) * 4.0
-			draw_line(Vector2(x, EXIT.y - 70), Vector2(x + 3, EXIT.y - 70 + length), Color("a8d8a0"), 5.0)
-			draw_circle(Vector2(x + 3, EXIT.y - 70 + length), 3, Color("c9f0c0"))
-	for herb in _den.get("herbs", []):
+			c.draw_line(Vector2(x, EXIT.y - 70), Vector2(x + 3, EXIT.y - 70 + length), Color("a8d8a0"), 5.0)
+			c.draw_circle(Vector2(x + 3, EXIT.y - 70 + length), 3, Color("c9f0c0"))
+	for herb in den.get("herbs", []):
 		var p: Vector2 = herb[0]
-		draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(46, 14)), Color("8e8aa0"))
+		c.draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(46, 14)), Color("8e8aa0"))
 		for k in 5:
 			var leaf := p + Vector2(-24 + k * 12, -6 - (k % 2) * 6)
-			draw_colored_polygon(Fx.ellipse_points(leaf, Vector2(9, 5)), Color("6fb85a").darkened(k * 0.05))
+			c.draw_colored_polygon(Fx.ellipse_points(leaf, Vector2(9, 5)), Color("6fb85a").darkened(k * 0.05))
 		var flower: Color = {"Marigold": Color("ff9f43"), "Poppy Seeds": Color("ff5d73"), "Catmint": Color("c9b6ff"),
 				"Honey": Color("ffd23f"), "Cobwebs": Color("f3f3f3")}.get(herb[1], Color.WHITE)
-		Scenery.flower(self, p + Vector2(0, -18), flower)
-		draw_string(ThemeDB.fallback_font, p + Vector2(-70, 40), herb[1], HORIZONTAL_ALIGNMENT_CENTER, 140, 20, Fx.INK)
+		Scenery.flower(c, p + Vector2(0, -18), flower)
+		c.draw_string(ThemeDB.fallback_font, p + Vector2(-70, 40), herb[1], HORIZONTAL_ALIGNMENT_CENTER, 140, 20, Fx.INK)
 
 
-func _draw_treasure(p: Vector2, label: String, color: Color) -> void:
-	draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(40, 12)), Color(0, 0, 0, 0.15))
+static func _draw_treasure(c: CanvasItem, p: Vector2, label: String, color: Color) -> void:
+	c.draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, 4), Vector2(40, 12)), Color(0, 0, 0, 0.15))
 	match label:
 		"Owl Feather":
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-30, 0), p + Vector2(0, -16), p + Vector2(30, -6),
+			c.draw_colored_polygon(PackedVector2Array([p + Vector2(-30, 0), p + Vector2(0, -16), p + Vector2(30, -6),
 					p + Vector2(0, 4)]), color)
-			draw_line(p + Vector2(-34, 2), p + Vector2(30, -6), Color("6b4428"), 2.0)
+			c.draw_line(p + Vector2(-34, 2), p + Vector2(30, -6), Color("6b4428"), 2.0)
 		"Nine Stars":
 			for k in 9:
-				Scenery.star(self, p + Vector2(-40 + (k % 5) * 20, -60 + (k / 5) * 22), 7, color)
+				Scenery.star(c, p + Vector2(-40 + (k % 5) * 20, -60 + (k / 5) * 22), 7, color)
 		_:
-			draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(22, 14)), Fx.OUTLINE)
-			draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(19, 11)), color)
-			draw_circle(p + Vector2(-6, -15), 4, Color(1, 1, 1, 0.7))
-	draw_string(ThemeDB.fallback_font, p + Vector2(-80, 32), label, HORIZONTAL_ALIGNMENT_CENTER, 160, 20, Fx.INK)
+			c.draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(22, 14)), Fx.OUTLINE)
+			c.draw_colored_polygon(Fx.ellipse_points(p + Vector2(0, -10), Vector2(19, 11)), color)
+			c.draw_circle(p + Vector2(-6, -15), 4, Color(1, 1, 1, 0.7))
+	c.draw_string(ThemeDB.fallback_font, p + Vector2(-80, 32), label, HORIZONTAL_ALIGNMENT_CENTER, 160, 20, Fx.INK)
 
 
 class Nest extends Node2D:

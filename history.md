@@ -272,3 +272,27 @@ Whatever rank you are in your own game, that's your rank in the two-player world
 - Deputies could send Clan cats on patrols
 - Go inside the dens together
 - Meet a RiverClan patrol at the river
+
+## Session: 2026-10-04
+
+### What the creator asked for:
+"We can't go inside the dens!" (in the two-player ThunderClan Together world)
+
+### What was built/changed:
+- Every den in the two-player world now has a room you can walk into: Warriors' Den,
+  Apprentices' Den, Nursery, Elders' Den, Medicine Den and the Leader's Den. Each player can go
+  in on their own half of the screen, and walk out the bottom to go back to camp.
+- Inside: the same nests, sleeping cats, herbs and treasures as the one-player dens. Talk to cats
+  who are awake (sleeping ones go "Zzz...")
+- Your own nest is in your rank's den (leader = Leader's Den, medicine cat = Medicine Den,
+  warrior = Warriors' Den, apprentice = Apprentices' Den). Nap in it to dream.
+- Medicine cats put their herbs away just by walking into the Medicine Den
+- Apprentices still can't go in the Warriors' Den!
+- The little map shows you at the den door while you're inside
+
+### What you can do now:
+- In ThunderClan Together, walk up to a den and press your key to go inside
+
+### What's next:
+- Deputies could send Clan cats on patrols
+- Meet a RiverClan patrol at the river

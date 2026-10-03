@@ -5,6 +5,7 @@ extends Node2D
 ## Player 1: arrows + SPACE.  Player 2: W A S D + E.  The same key pounces, talks and uses things.
 ##   Border patrol: mark the 5 glowing scent-marker trees.
 ##   Hunting patrol: catch mice and carry them home to the fresh-kill pile.
+## Every den has a room you can walk into (the rooms are tucked away below the map).
 ## Each player keeps their own rank from their save: only a leader speaks from the Highrock,
 ## only medicine cats can pick herbs, and the camp changes when cats have retired.
 
@@ -17,6 +18,9 @@ const USE_DISTANCE := 90.0
 const CATCH_DISTANCE := 70.0
 const SCARE_DISTANCE := 115.0
 const PLAYER_COLORS := [Color("ffd966"), Color("ff9ec0")]
+const ROOMS := ["warriors", "apprentices", "nursery", "elders", "medicine", "leader"]
+const ROOM_Y := 2700.0  # the den rooms are in a row down here, out of sight of the territory
+const ROOM_SIZE := Vector2(1280, 720)
 const KEY_NAMES := ["SPACE", "E"]
 
 ## Special places in the territory: [name, where, where its scent-marker tree is]
@@ -74,6 +78,9 @@ var _herbs: Array[HerbPatch] = []  # herbs growing in the forest (for medicine c
 var _carrying_herbs := [0, 0]
 var _herb_count := 0  # herbs brought home to the medicine den
 var _quest_back: Panel
+var _inside := ["", ""]  # which den each player is inside ("" = outside)
+var _doors := {}  # den -> where its door is in camp
+var _napping := [false, false]
 var _quest_label: Label
 var _banner: Label
 var _map: MiniMap
@@ -94,6 +101,7 @@ func _ready() -> void:
 	_world.y_sort_enabled = true
 	_cameras = SplitScreen.make(self, _world, MAP)
 	_build_camp()
+	_build_rooms()
 	_build_territory()
 	var blockers: Array[Rect2] = _gorse_wall()
 	for prop in _world.get_children():
@@ -153,10 +161,12 @@ func _build_camp() -> void:
 		_npcs.append(elder)
 	_spots.append({"pos": Vector2(530, 352) + OFFSET, "what": "rock"})
 	_spots.append({"pos": Vector2(748, 322) + OFFSET, "what": "den", "den": "leader"})
+	_doors["leader"] = Vector2(748, 322) + OFFSET
 	for key in DENS:
 		var den: Array = DENS[key]
 		_add_prop("medicine" if key == "medicine" else "den", den[0] + OFFSET, den[1])
 		_spots.append({"pos": den[0] + OFFSET + Vector2(0, 22), "what": "den", "den": key})
+		_doors[key] = den[0] + OFFSET + Vector2(0, 22)
 	_pile = _add_prop("fresh_kill", Vector2(840, 470) + OFFSET, "Fresh-kill Pile")
 	_spots.append({"pos": Vector2(840, 492) + OFFSET, "what": "pile"})
 	var someone_grown: bool = _infos.any(func(c): return c.grown)
@@ -202,6 +212,122 @@ func _gorse_wall() -> Array[Rect2]:
 		var p := CAMP + Vector2(cos(a) * CAMP_RADII.x, sin(a) * CAMP_RADII.y)
 		rects.append(Rect2(p - Vector2(40, 40), Vector2(80, 80)))
 	return rects
+
+
+## The inside of every den, each one a room in the same world
+func _build_rooms() -> void:
+	var leader := _leader_name()
+	for k in ROOMS.size():
+		var key: String = ROOMS[k]
+		var den: Dictionary = Den.DENS[key]
+		var origin := _room_origin(key)
+		var room := DenRoom.new()
+		room.den = den
+		room.position = origin
+		_world.add_child(room)
+		var nests: Array = den.nests.duplicate()
+		if key == "leader":
+			nests.append([Vector2(640, 380), "%s's nest" % (leader if leader != "" else "Bluestar")])
+		for i in 2:
+			if _home_den(i) == key and key != "leader":
+				nests.append([Vector2(540 + i * 200, 480), "%s's nest" % _infos[i].name])
+		for n in nests:
+			var nest := Den.Nest.new()
+			nest.position = n[0]
+			nest.label = n[1]
+			if nest.label == "Spottedleaf's nest" and _infos.any(func(c): return c.rank == "head"):
+				nest.label = "Yellowfang's nest"
+			room.add_child(nest)
+			var owner := -1
+			for i in 2:
+				if nest.label == "%s's nest" % _infos[i].name:
+					owner = i
+			if owner >= 0:
+				_spots.append({"pos": origin + n[0], "what": "nest", "owner": owner})
+		for c in den.cats:
+			var npc := Npc.make(c[0], [-1.0, 1.0].pick_random())
+			npc.position = c[1]
+			npc.cat.sleeping = c[2]
+			npc.set_meta("den_cat", true)
+			room.add_child(npc)
+			_npcs.append(npc)
+		for thing in den.get("herbs", []) + den.get("treasures", []):
+			var text: String = thing[2].format({"nine": "Nine little stars, one for each of %s's nine lives." % (
+					leader if leader != "" else "Bluestar")})
+			_spots.append({"pos": origin + thing[0], "what": "thing", "name": thing[1], "text": text})
+
+
+func _room_origin(key: String) -> Vector2:
+	return Vector2(ROOMS.find(key) * (ROOM_SIZE.x + 200), ROOM_Y)
+
+
+## Which den a player sleeps in, from their rank
+func _home_den(i: int) -> String:
+	var info: Dictionary = _infos[i]
+	if info.leader:
+		return "leader"
+	if info.medicine:
+		return "medicine"
+	return "warriors" if info.grown else "apprentices"
+
+
+## Walk through a den's door into its room
+func _enter_den(i: int, key: String) -> void:
+	var info: Dictionary = _infos[i]
+	var player := _players[i]
+	var above := 112 * player.cat.size + 30
+	if key == "warriors" and not info.grown and not info.medicine:
+		Fx.speech(player, "Apprentices aren't allowed in the Warriors' Den... yet!", above, 2.5)
+		return
+	Sfx.play("click")
+	_inside[i] = key
+	var origin := _room_origin(key)
+	player.position = origin + Den.EXIT + Vector2(0, -60)
+	player.bounds = Rect2(origin + Den.INSIDE.position, Den.INSIDE.size)
+	player.round_bounds = true
+	_set_camera_room(i, Rect2(origin, ROOM_SIZE))
+	Fx.speech(player, _den_words(i, key), above, 3.0)
+	if key == "medicine" and _carrying_herbs[i] > 0:
+		_put_away_herbs(i)
+
+
+## Walk out of the bottom of a den, back into camp
+func _leave_den(i: int) -> void:
+	var player := _players[i]
+	player.position = _doors[_inside[i]] + Vector2(0, 40)
+	player.bounds = WALK
+	player.round_bounds = false
+	_inside[i] = ""
+	Sfx.play("click")
+	_set_camera_room(i, MAP)
+
+
+func _set_camera_room(i: int, area: Rect2) -> void:
+	var camera := _cameras[i]
+	camera.limit_left = int(area.position.x)
+	camera.limit_top = int(area.position.y)
+	camera.limit_right = int(area.end.x)
+	camera.limit_bottom = int(area.end.y)
+	camera.position = _players[i].position + Vector2(0, -60)
+	camera.reset_smoothing()
+
+
+## Curl up in your own nest for a nap
+func _nap(i: int) -> void:
+	var player := _players[i]
+	var info: Dictionary = _infos[i]
+	_napping[i] = true
+	player.frozen = true
+	player.cat.sleeping = true
+	await get_tree().create_timer(2.5).timeout
+	var dreams: Array = Den.STARCLAN_DREAMS if (info.medicine or info.leader) and randf() < 0.6 else Den.NAP_DREAMS
+	player.cat.sleeping = false
+	player.cat.bounce(0.35)
+	Sfx.play("powerup")
+	Fx.hearts(_world, player.position + Vector2(0, -60), 10)
+	Fx.speech(player, dreams.pick_random(), 112 * player.cat.size + 30, 4.0)
+	player.frozen = false
+	_napping[i] = false
 
 
 func _build_territory() -> void:
@@ -279,6 +405,7 @@ func _make_hud() -> void:
 	_map.places = PLACES
 	_map.markers = _markers
 	_map.players = _players
+	_map.where = _map_position
 	_map.colors = PLAYER_COLORS
 	hud.add_child(_map)
 	_update_quests()
@@ -300,25 +427,30 @@ func _process(_delta: float) -> void:
 func _player_turn(i: int) -> void:
 	var player := _players[i]
 	var prompt := _prompts[i]
-	if _on_rock[i]:
+	if _on_rock[i] or _napping[i]:
 		prompt.visible = false
 		return
+	if _inside[i] != "":
+		var exit := _room_origin(_inside[i]) + Den.EXIT
+		if player.position.y > exit.y - 12 and absf(player.position.x - exit.x) < 90:
+			_leave_den(i)
+			return
 	var spot := _nearest_spot(player.position)
 	player.can_pounce = spot.is_empty()  # the key talks or uses things instead of pouncing
 	prompt.visible = not spot.is_empty()
 	if spot.is_empty():
 		return
 	var info: Dictionary = _infos[i]
-	var verb: String = {"cat": "talk", "den": "look", "pile": "look", "rock": "look", "marker": "mark it!",
-			"herb": "look"}[spot.what]
+	var verb: String = {"cat": "talk", "den": "go inside", "pile": "look", "rock": "look", "marker": "mark it!",
+			"herb": "look", "thing": "look", "nest": "nap"}[spot.what]
 	if spot.what == "pile" and _carrying[i] > 0:
 		verb = "drop your prey"
 	elif spot.what == "rock" and info.leader:
 		verb = "hold a Clan meeting!"
 	elif spot.what == "herb" and info.medicine:
 		verb = "pick %s" % spot.herb.kind
-	elif spot.what == "den" and spot.den == "medicine" and _carrying_herbs[i] > 0:
-		verb = "put away your herbs"
+	elif spot.what == "nest" and spot.owner != i:
+		verb = "look"
 	prompt.text = "%s = %s" % [KEY_NAMES[i], verb]
 	prompt.position = spot.pos + Vector2(-150, 10)
 	if Input.is_action_just_pressed("p%d_pounce" % (i + 1)):
@@ -359,15 +491,23 @@ func _use(i: int, spot: Dictionary) -> void:
 			npc.face_toward(player.position)
 			npc.cat.bounce(0.25)
 			Sfx.play("select")
-			var lines: Array = Story.DEN_CHATS[npc.npc_name] if npc.has_meta("retired") else \
-					Story.chat_options(npc.npc_name, info.grown, info.medicine, info.leader)
+			if npc.cat.sleeping:
+				Fx.speech(npc, "Zzz... (Shh! %s is sleeping.)" % npc.npc_name, 112 * npc.cat.size + 30, 2.0)
+				return
+			var lines: Array = Story.chat_options(npc.npc_name, info.grown, info.medicine, info.leader)
+			if npc.has_meta("retired") or npc.has_meta("den_cat"):
+				lines = Story.DEN_CHATS.get(npc.npc_name, ["Hello, {me}!"])
 			Fx.speech(npc, lines.pick_random().replace("{me}", me), 112 * npc.cat.size + 30, 3.0)
 		"den":
-			Sfx.play("click")
-			if spot.den == "medicine" and _carrying_herbs[i] > 0:
-				_put_away_herbs(i)
+			_enter_den(i, spot.den)
+		"thing":
+			Sfx.play("select")
+			Fx.speech(player, "%s: %s" % [spot.name, spot.text], above, 3.5)
+		"nest":
+			if spot.owner == i:
+				_nap(i)
 			else:
-				Fx.speech(player, _den_words(i, spot.den), above, 3.0)
+				Fx.speech(player, "That's %s's nest. So cozy!" % _infos[spot.owner].name, above, 2.5)
 		"herb":
 			if info.medicine:
 				_pick_herb(i, spot.herb)
@@ -406,18 +546,20 @@ func _den_words(i: int, den: String) -> String:
 	match den:
 		"leader":
 			if info.leader:
-				return "Your very own den! Your mossy nest is inside."
+				return "Your very own den! Curl up in your nest for a nap."
 			if _leader_name() != "":
 				return "%s's den. Only the leader sleeps in here." % _leader_name()
 		"medicine":
 			if info.medicine:
-				return "Your medicine den! Let's find more herbs in the forest." if info.grown else \
+				return "Your medicine den! Your nest is here, next to all the herbs." if info.grown else \
 						"The medicine den, where you're learning to be a healer!"
 		"warriors":
 			if not info.grown and not info.medicine:
 				return "The Warriors' Den. Apprentices aren't allowed in there... yet!"
 			if info.grown and not info.medicine and not info.leader:
 				return "Your den! Your nest is next to Whitestorm's."
+			if info.leader:
+				return "The Warriors' Den. Your warriors are napping after their patrols."
 		"apprentices":
 			if not info.grown and not info.medicine:
 				return "Your den! Your mossy nest is in here."
@@ -541,6 +683,11 @@ func _catch(mouse: Mouse, i: int) -> void:
 	_spawn_mouse()
 
 
+## Where to show a player on the little map (at the door if they're inside a den)
+func _map_position(i: int) -> Vector2:
+	return _doors[_inside[i]] if _inside[i] != "" else _players[i].position
+
+
 func _update_carrying(i: int) -> void:
 	var holding := []
 	if _carrying[i] > 0:
@@ -632,6 +779,18 @@ class WorldFloor extends Node2D:
 		return d.length() < 1.0
 
 
+class DenRoom extends Node2D:
+	## The inside of one den (drawn the same way as the one-player den scene)
+	var den: Dictionary
+
+	func _process(_delta: float) -> void:
+		if den.get("cave", false):
+			queue_redraw()  # the lichen curtain sways
+
+	func _draw() -> void:
+		Den.draw_room(self, den)
+
+
 class HerbPatch extends Node2D:
 	## A sparkly herb growing in the forest. Only medicine cats can pick it!
 	var kind := ""
@@ -678,6 +837,7 @@ class MiniMap extends Control:
 	var markers: Array = []
 	var players: Array = []
 	var colors: Array = []
+	var where: Callable  # where to draw player i
 
 	func _process(_delta: float) -> void:
 		queue_redraw()
@@ -692,5 +852,5 @@ class MiniMap extends Control:
 		for m in markers:
 			draw_circle(m.position * s, 4, Color("ffd23f") if m.done else Color("c77dff"))
 		for i in players.size():
-			draw_circle(players[i].position * s, 6, Fx.OUTLINE)
-			draw_circle(players[i].position * s, 4.5, colors[i])
+			draw_circle(where.call(i) * s, 6, Fx.OUTLINE)
+			draw_circle(where.call(i) * s, 4.5, colors[i])
