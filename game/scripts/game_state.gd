@@ -439,9 +439,21 @@ func describe_slot(i: int) -> Dictionary:
 	var info := {"name": saved.cat_name(), "look": saved.look(), "paint": saved.paint,
 			"progress": progress, "size": saved.cat_size(), "kittypet": saved.is_kittypet(),
 			"slot": i, "title": saved.rank_title(), "grown": saved.is_grown(), "rank": saved.rank,
-			"medicine": saved.is_medicine(), "leader": saved.is_leader()}
+			"medicine": saved.is_medicine(), "leader": saved.is_leader(), "prefix": saved.prefix(),
+			"suffix": saved.name_suffix()}
 	saved.free()
 	return info
+
+
+## Changes some saved things for the cat in slot i, like {"rank": "deputy"}
+## (when something happens to them in the two-player world)
+func edit_slot(i: int, changes: Dictionary) -> void:
+	var saved: Node = get_script().new()
+	if saved.load_game(i):
+		for key in changes:
+			saved.set(key, changes[key])
+		saved.save_game()
+	saved.free()
 
 
 # --- friends from other save slots ----------------------------------------------------------

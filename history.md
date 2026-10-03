@@ -296,3 +296,56 @@ Whatever rank you are in your own game, that's your rank in the two-player world
 ### What's next:
 - Deputies could send Clan cats on patrols
 - Meet a RiverClan patrol at the river
+
+## Session: 2026-10-04 (part 2)
+
+### What the creator asked for:
+In the two-player world: the leader can make mentors, warriors and a deputy, and do other leader
+things from the books. Medicine cats can ask other cats to help collect a certain herb while they
+work. And you can do things with the other player.
+
+### What was built/changed:
+- **Your own menu on your half of the screen**: Player 1 uses UP/DOWN + SPACE, Player 2 uses
+  W/S + E. One player can pick things while the other keeps playing.
+- **Leader's Clan meetings** (walk to the Highrock and press your key):
+  - **Make a kit an apprentice**: Cinderkit, Brightkit, Thornkit or Brackenkit get their -paw
+    name, and you choose their **mentor**: yourself, the other player, or a Clan warrior. If the
+    mentor is one of you, the apprentice follows them around!
+  - **Give a warrior name**: pick an apprentice and choose their new name from 4 choices. If the
+    other player is an apprentice, they're asked "Are you ready?" first.
+  - **Choose a deputy**: a Clan warrior, or the other player (if they say yes). The deputy gets a
+    gold "Deputy" tag, and the leader's own game remembers who it is.
+  - **Send out a patrol**: 2 or 3 Clan cats walk out of the gorse tunnel. Hunting patrols come
+    back with prey for the fresh-kill pile, border patrols come back with news.
+  - Cheer for ThunderClan, like before.
+  - Every ceremony happens on the Highrock with the real words from the books, and the whole Clan
+    cheers the new name.
+- **Deputies** can send out patrols from the Highrock too.
+- **Mentors**: talk to your apprentice to practice battle moves (or learn about herbs), tell
+  them to wait or follow you. After 3 lessons they say they're ready for their warrior name.
+- **Medicine cat work**:
+  - Now and then a Clan cat gets sick and lies down in the Medicine Den, with a little cloud
+    showing the herb they need. Talk to them to give it from the herb store.
+  - A **herb shelf** on the medicine cat's side of the screen shows how many of each herb you have.
+  - Talk to a Clan cat and ask them to **fetch a herb**. They go out and come back with 2.
+  - Walk up to the other player and **ask for herbs**: they get an errand like "Find Catmint for
+    Cinderpelt: 0 / 3", the herb's name shows above it in the forest, and they can pick it even
+    though they're not a medicine cat. Bring it to the Medicine Den or hand it to the medicine cat.
+- **Playing with the other player** (walk up to them and press your key): say something, share
+  tongues (lots of purring and hearts), play **tag** (pounce to tag, 40 seconds), **race** to a
+  special place (follow the arrow!), share a mouse, or give your herbs. Games ask the other player
+  "Yes / Not now" first.
+- The Clan **remembers** its ceremonies (new names, mentors, the deputy and the herb store) for
+  the next time you play together.
+- The task box at the top now shows who the deputy is, and how many sick cats you've helped.
+
+### What you can do now:
+- As the leader: go to the Highrock and make Cinderkit an apprentice with YOU as mentor, then
+  choose a deputy
+- As the medicine cat: wait for a sick cat, then ask your friend to find the herb they need
+- Walk up to each other and play tag or have a race to Fourtrees!
+
+### What's next:
+- Kits could be born in the nursery so there are always new apprentices
+- A Gathering at Fourtrees with the other Clans at the full moon
+- The deputy could pick which cats go on each patrol

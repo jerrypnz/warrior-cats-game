@@ -9,6 +9,8 @@ var speed := 70.0
 var hops := false  # kits bounce around while they play
 var talk_spot := Vector2.ZERO  # offset of where the player should stand to talk
 var bubble_offset := Vector2.ZERO  # moves the "!" if it would be off screen
+var follow_target: Node2D = null  # an apprentice following their mentor around
+var follow_speed := 300.0
 var has_news := false:  # shows a bouncing "!" above their head
 	set(value):
 		has_news = value
@@ -18,6 +20,7 @@ var _target := Vector2.ZERO
 var _wait := 0.0
 var _prompt: Label
 var _name_label: Label
+var _title_label: Label
 var _time := 0.0
 var _walking := false
 
@@ -55,6 +58,29 @@ func rename(new_name: String) -> void:
 	_name_label.text = new_name
 
 
+## A cat grew up (kit -> apprentice -> warrior): make them bigger and move their labels
+func resize(new_size: float) -> void:
+	cat.size = new_size
+	_name_label.position = Vector2(-150, -112 * new_size - 30)
+	if _title_label:
+		_title_label.position = Vector2(-150, -112 * new_size - 56)
+	queue_redraw()
+
+
+## A little word above the name, like "Deputy" ("" takes it away)
+func set_title(text: String) -> void:
+	if _title_label == null:
+		if text == "":
+			return
+		_title_label = Fx.make_label("", 20, Color("ffd966"), 6)
+		_title_label.size = Vector2(300, 28)
+		_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		add_child(_title_label)
+		resize(cat.size)
+	_title_label.text = text
+	_title_label.visible = text != ""
+
+
 func talk_position() -> Vector2:
 	return global_position + talk_spot
 
@@ -74,6 +100,9 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	if _walking:
 		cat.walk_amount = move_toward(cat.walk_amount, 1.0, delta * 6.0)
+		return
+	if follow_target != null:
+		_follow(delta)
 		return
 	if wander_area.size == Vector2.ZERO or _prompt.visible:
 		cat.walk_amount = move_toward(cat.walk_amount, 0.0, delta * 5.0)
@@ -98,6 +127,20 @@ func _process(delta: float) -> void:
 	face_toward(global_position + to_target)
 	if hops:
 		cat.lift = absf(sin(_time * 9.0)) * 14.0
+
+
+## Stay close to the cat we're following (and catch up straight away if they went far, like into a den)
+func _follow(delta: float) -> void:
+	var to_target := follow_target.position - position
+	if to_target.length() > 900.0:
+		position = follow_target.position + Vector2(-90, 10)
+		return
+	if to_target.length() < 100.0:
+		cat.walk_amount = move_toward(cat.walk_amount, 0.0, delta * 5.0)
+		return
+	position += to_target.normalized() * minf(follow_speed * delta, to_target.length() - 90.0)
+	cat.walk_amount = move_toward(cat.walk_amount, 1.0, delta * 6.0)
+	face_toward(follow_target.global_position)
 
 
 ## Walk somewhere (for cutscenes). You can "await" this.
