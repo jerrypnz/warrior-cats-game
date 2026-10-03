@@ -78,7 +78,7 @@ func _ready() -> void:
 	_player.frozen = true
 	_world.add_child(_player)
 
-	if GameState.activity == "free_hunt" and GameState.has_apprentice:
+	if GameState.activity == "free_hunt" and GameState.apprentice_following():
 		_cinderpaw = Follower.make("Cinderkit", _player, 90.0)
 		_cinderpaw.cat.size = 0.72
 		_world.add_child(_cinderpaw)

@@ -99,3 +99,47 @@ a brush, and save slots.
 - Cinderpaw's warrior ceremony after lots of lessons?
 - Book 2: bringing WindClan home
 - More dens to decorate, or a moss-ball game with the kits
+
+## Session: 2026-10-03 (part 4)
+
+### What the creator asked for:
+A choice to be a medicine cat. Type your own name, and become leader one day. Pick your own
+warrior name at the ceremony, or just go with what you get. (And: how do you get back to the
+title screen?)
+
+### What was built/changed:
+- **ESC menu**: press ESC any time for "Keep playing" or "Back to title screen". The title
+  screen shows "ESC = menu" now.
+- **Type your own name**: in the cat designer, press SPACE on the Name row (or click "Type!")
+  and type any name. "Luna" makes you Lunapaw!
+- **Warrior or medicine cat?** At your apprentice ceremony, Spottedleaf says StarClan sent a
+  sign, and YOU choose. Bluestar and Spottedleaf explain that medicine cats can never be leader.
+- **Medicine cat story** (Spottedleaf is your mentor):
+  - Chapter 4 Herb Hunting: find marigold, catmint, cobwebs and watermint. Don't touch deathberries!
+  - Chapter 5 Helping Sick Cats: Clanmates tell you what's wrong, you give the right herb
+  - Chapter 7: you find hurt Yellowfang and heal her with herbs instead of hunting for her
+  - Chapter 9 The Moonstone: Spottedleaf gives you your medicine cat name, and a StarClan cat
+    visits your dream
+- **Pick your name ending**: at the warrior (or medicine cat) ceremony, say "Surprise me!" for
+  your personality's ending, or "I'll pick my name!" to choose from 24 endings (-storm, -frost,
+  -flower...) or type your own.
+- **The road to leader** (warriors): train Cinderpaw 3 times and she becomes Cinderpelt. Then
+  Lionheart retires and you become deputy. Lead 2 patrols (hunting or border patrols through the
+  gorse tunnel; on border patrol Whitestorm, Graystripe and Sandpaw follow YOU). Then Bluestar
+  retires and you go to the Moonstone, where 9 StarClan cats each give you a life (courage,
+  kindness, hope...) and you become ___star! Back home you pick your deputy.
+- **Being leader**: walk up to the Highrock to call a Clan meeting. Make Brightkit into Brightpaw
+  (you pick her mentor), or get the whole Clan cheering.
+- **Medicine cat after the story**: Cinderpaw becomes your medicine cat apprentice. When she's
+  Cinderpelt, Spottedleaf retires and you're ThunderClan's medicine cat. Help sick cats from the
+  Medicine Den, gather herbs through the tunnel, and nap for StarClan dreams.
+- Retired cats (Bluestar, Lionheart, Spottedleaf) live in the Elders' Den and you can visit them
+
+### What you can do now:
+- Start a new cat, type its name, and choose the medicine cat path
+- Keep playing Mosspetal: train Cinderpaw and work your way up to leader!
+
+### What's next:
+- Choose a different Clan?
+- More Clan meeting ceremonies for the other kits (Thornkit, Brackenkit)
+- Book 2: bringing WindClan home

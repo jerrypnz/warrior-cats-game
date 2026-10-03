@@ -36,7 +36,7 @@ func _ready() -> void:
 	ui.add_child(Fx.centered_label("Into the Wild", 44, Color("fff6ec"), 190))
 	_start_label = Fx.centered_label("Press SPACE to start!", 40, Color("9be37a"), 270)
 	ui.add_child(_start_label)
-	var controls := Fx.centered_label("Arrow keys = walk and choose     SPACE = jump, pounce, talk and OK", 26,
+	var controls := Fx.centered_label("Arrows = walk and choose    SPACE = jump, pounce, talk, OK    ESC = menu", 26,
 			Color("f6e8c8"), 660)
 	ui.add_child(controls)
 

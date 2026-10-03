@@ -11,6 +11,12 @@ const NAP_DREAMS := [
 	"You dreamed about a mountain made of fresh-kill. Yum!",
 	"You dreamed you were leader of ThunderClan!",
 ]
+const STARCLAN_DREAMS := [
+	"A starry cat whispered: \"Fresh catmint grows by the Owl Tree.\"",
+	"You dreamed of StarClan cats sparkling like tiny moons. They purred: \"You are a wonderful healer.\"",
+	"In your dream, a silver cat said: \"Kindness heals more than any herb.\"",
+]
+const PATIENT_NEST := Vector2(880, 590)
 # For each den: cats [name, place, sleeping?], nests [place, label], herbs [place, name, what it does]
 const DENS := {
 	"warriors": {
@@ -73,23 +79,38 @@ func _ready() -> void:
 	_world.y_sort_enabled = true
 	add_child(_world)
 
+	var gs := GameState
 	var nests: Array = _den.nests.duplicate()
-	var home := "warriors" if GameState.is_warrior() else "apprentices"
-	if GameState.den == home:
+	var home := "medicine" if gs.is_medicine() else "warriors" if gs.is_grown() else "apprentices"
+	if gs.den == home:
 		_my_nest = Vector2(640, 470)
 		nests.append([_my_nest, "Your nest"])
 		_spots.append({"pos": _my_nest, "prompt": "SPACE = nap", "what": "nap"})
-	if GameState.den == "apprentices" and GameState.has_apprentice:
+	if gs.apprentice_following() and gs.den == ("medicine" if gs.is_medicine() else "apprentices"):
 		nests.append([Vector2(420, 560), "Cinderpaw's nest"])
+	if gs.den == "medicine" and gs.is_medicine() and gs.is_grown():
+		nests.append([PATIENT_NEST, "Sick cats' nest"])
+		_spots.append({"pos": PATIENT_NEST, "prompt": "SPACE = help sick cats", "what": "heal"})
 	for n in nests:
 		var nest := Nest.new()
 		nest.position = n[0]
 		nest.label = n[1]
+		if nest.label == "Spottedleaf's nest" and gs.rank == "head":
+			nest.label = "Yellowfang's nest"  # Spottedleaf moved to the elders' den
 		floor_things.add_child(nest)
 	for herb in _den.get("herbs", []):
 		_spots.append({"pos": herb[0], "prompt": "SPACE = look", "what": "herb", "herb": herb})
 
-	for c in _den.cats:
+	var cats: Array = _den.cats.filter(func(c): return c[0] != gs.deputy_name)
+	if gs.den == "elders":
+		# Cats who retired to a cozy life in the elders' den
+		var retired := {"Bluestar": gs.is_leader(), "Lionheart": gs.rank in ["deputy", "leader"],
+				"Spottedleaf": gs.rank == "head"}
+		var spots := [Vector2(470, 600), Vector2(810, 600), Vector2(640, 430)]
+		for who in retired:
+			if retired[who]:
+				cats.append([who, spots.pop_front(), false])
+	for c in cats:
 		var npc := Npc.make(c[0], [-1.0, 1.0].pick_random())
 		npc.position = c[1]
 		npc.cat.sleeping = c[2]
@@ -102,7 +123,7 @@ func _ready() -> void:
 	_player.bounds = INSIDE
 	_player.round_bounds = true
 	_world.add_child(_player)
-	if GameState.has_apprentice:
+	if gs.apprentice_following():
 		_cinderpaw = Follower.make("Cinderkit", _player, 90.0)
 		_cinderpaw.cat.size = 0.72
 		_world.add_child(_cinderpaw)
@@ -157,6 +178,9 @@ func _use(spot: Dictionary) -> void:
 	match spot.what:
 		"nap":
 			_nap()
+		"heal":
+			Sfx.play("select")
+			GameState.start_activity("heal_clan")
 		"herb":
 			Sfx.play("select")
 			_dialog.say([[spot.herb[1], spot.herb[2]]])
@@ -185,7 +209,8 @@ func _nap() -> void:
 	var dim := create_tween()
 	dim.tween_property(_dark, "color", Color("4a4a7a"), 1.0)
 	await get_tree().create_timer(2.5).timeout
-	_dialog.say([["", NAP_DREAMS.pick_random()]])
+	var dreams := STARCLAN_DREAMS if GameState.is_medicine() and randf() < 0.6 else NAP_DREAMS
+	_dialog.say([["", dreams.pick_random()]])
 	await _dialog.finished
 	var wake := create_tween()
 	wake.tween_property(_dark, "color", Color.WHITE, 0.8)

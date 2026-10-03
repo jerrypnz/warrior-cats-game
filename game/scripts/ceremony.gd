@@ -18,6 +18,7 @@ var _dialog: DialogBox
 var _card: InfoCard
 var _camera: Camera2D
 var _reveal: CanvasLayer
+var _picker: EndingPicker
 var _stars: Array = []
 var _shooting: Array = []  # [start, velocity, age]
 var _time := 0.0
@@ -74,6 +75,8 @@ func _ready() -> void:
 	add_child(_card)
 	_reveal = CanvasLayer.new()
 	add_child(_reveal)
+	_picker = EndingPicker.new()
+	add_child(_picker)
 	_run_ceremony.call_deferred()
 
 
@@ -97,8 +100,10 @@ func _run_ceremony() -> void:
 		["Bluestar", "{paw}, you came to us as a kittypet. But you have the heart of a true warrior."],
 		["Bluestar", "{paw}, do you promise to protect your Clan with all your heart?"],
 		[paw, "I do!"],
-		["Bluestar", "Then by the power of StarClan, I give you your warrior name..."],
 	]))
+	await _dialog.finished
+	await _picker.choose_name(_dialog, "Bluestar")
+	_dialog.say([["Bluestar", "Then by the power of StarClan, I give you your warrior name..."]])
 	await _dialog.finished
 
 	# The big reveal!

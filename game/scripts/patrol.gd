@@ -1,6 +1,7 @@
 extends Node2D
 ## Border patrol with Lionheart, Graypaw and Ravenpaw: run through the territory, jump over
 ## streams and logs, and leave scent markers at ThunderClan's special places.
+## Deputies and leaders lead their own patrol later on (with Whitestorm, Graystripe and Sandpaw).
 
 const GROUND_Y := 600.0
 const LEVEL_END := 4700.0
@@ -27,6 +28,8 @@ const PLACES := [
 	["Fourtrees", "Lionheart", "Fourtrees! All four Clans meet here at the full moon."],
 ]
 const PATROL := ["Lionheart", "Graypaw", "Ravenpaw"]
+const LEAD_PATROL := ["Whitestorm", "Graypaw", "Sandpaw"]
+const LEAD_SPEAKERS := {"Lionheart": "Whitestorm", "Ravenpaw": "Sandpaw"}  # who says what when you lead
 
 var _player: PlatformPlayer
 var _patrol: Array[Follower] = []
@@ -38,6 +41,7 @@ var _card: InfoCard
 var _score_label: Label
 var _time := 0.0
 var _decor: Array = []
+var _leading := false  # you're the deputy or leader, leading your own patrol
 
 
 func _ready() -> void:
@@ -45,6 +49,7 @@ func _ready() -> void:
 	for i in 120:
 		_decor.append(Vector3(randf_range(0, LEVEL_END), randf_range(612, 700), randi() % 4))
 	randomize()
+	_leading = GameState.activity == "lead_patrol"
 	for m in MARKERS:
 		_marked.append(false)
 
@@ -69,8 +74,9 @@ func _ready() -> void:
 	_player.position = Vector2(_checkpoint_x, GROUND_Y - 2)
 	_player.frozen = true
 	# The patrol is added first so they walk behind you
-	for i in PATROL.size():
-		var f := Follower.make(PATROL[i], _player, 110.0 + i * 100.0)
+	var cats: Array = LEAD_PATROL if _leading else PATROL
+	for i in cats.size():
+		var f := Follower.make(cats[i], _player, 110.0 + i * 100.0)
 		add_child(f)
 		_patrol.append(f)
 	add_child(_player)
@@ -94,8 +100,10 @@ func _ready() -> void:
 	add_child(_dialog)
 	_card = InfoCard.new()
 	add_child(_card)
-	_card.show_card(GameState.current().get("title", "Border Patrol!"),
-			"Patrol the territory with Lionheart, Graypaw and Ravenpaw!\nLeave a scent marker at each glowing special place.\n\nPress SPACE to jump over logs, rocks and streams!",
+	var intro := "You're leading the patrol! Whitestorm, Graystripe and Sandpaw are following YOU." if _leading \
+			else "Patrol the territory with Lionheart, Graypaw and Ravenpaw!"
+	_card.show_card(GameState.current().get("title", "Lead a Patrol!"),
+			intro + "\nLeave a scent marker at each glowing special place.\n\nPress SPACE to jump over logs, rocks and streams!",
 			"Press SPACE to start!")
 	await _card.closed
 	_playing = true
@@ -139,8 +147,9 @@ func _mark(i: int) -> void:
 	_player.cat.bounce(0.25)
 	_update_score()
 	var place: Array = PLACES[i]
+	var speaker: String = LEAD_SPEAKERS.get(place[1], place[1]) if _leading else place[1]
 	for f in _patrol:
-		if f.display_name == Story.display_name(place[1]):
+		if f.display_name == Story.display_name(speaker):
 			Fx.speech(f, place[2], 112 * f.cat.size + 30, 3.0)
 			f.cat.bounce(0.25)
 
@@ -167,6 +176,18 @@ func _win() -> void:
 	Sfx.play("win")
 	Fx.confetti(self, _player.position + Vector2(0, -200), 80)
 	await get_tree().create_timer(1.2).timeout
+	if _leading:
+		_dialog.say(Story.lines([
+			["RiverClan warrior", "Oh! It's {me}! Hello. We'll stay on our side of the river, don't worry."],
+			["Whitestorm", "Great patrol, {me}. Every cat followed you without a single splash!"],
+			["Graystripe", "Well... almost without a splash. Hee hee!"],
+		]))
+		await _dialog.finished
+		_card.show_card("Patrol Complete!", "You led your patrol all along the border!\nThe Clan is proud of you, %s." % GameState.cat_name(),
+				"Press SPACE to go back to camp")
+		await _card.closed
+		GameState.finish_activity()
+		return
 	_dialog.say(Story.lines([
 		["Lionheart", "Here's the river. On the other side is RiverClan territory!"],
 		["RiverClan warrior", "Hey! You ThunderClan cats stay on YOUR side of the river!"],

@@ -1,5 +1,6 @@
 extends Node2D
 ## Design your cat: fur, markings, eyes, the first part of your name, and personality.
+## On the Name row, SPACE (or the "Type!" button) lets you type your very own name.
 
 const ROWS := [
 	{"title": "Fur", "key": "fur"},
@@ -25,6 +26,7 @@ var _about_label: Label
 var _normal_style := Fx.panel_style(Color(1, 0.97, 0.93, 0.88), Color("f3c6d4"), 18, 3)
 var _selected_style := Fx.panel_style(Color("fff0f5"), Fx.PINK_DARK, 18, 5)
 var _time := 0.0
+var _typing: NameEntry
 
 
 func _ready() -> void:
@@ -48,6 +50,8 @@ func _ready() -> void:
 		_add_row(ui, i)
 	ui.add_child(Fx.centered_label("UP/DOWN = pick    LEFT/RIGHT = change    SPACE = next", 20,
 			Color("fff6ec"), 676, 600))
+	_typing = NameEntry.new()
+	add_child(_typing)
 	_refresh()
 
 
@@ -98,6 +102,20 @@ func _add_row(ui: CanvasLayer, i: int) -> void:
 			arrow.size = Vector2(48, 48)
 			arrow.pressed.connect(func(): _select(i); _change(dir))
 			panel.add_child(arrow)
+	if row.key == "prefix":
+		var type_button := Button.new()
+		type_button.text = "Type!"
+		type_button.focus_mode = Control.FOCUS_NONE
+		type_button.position = Vector2(100, 10)
+		type_button.size = Vector2(108, 48)
+		type_button.add_theme_font_size_override("font_size", 24)
+		type_button.add_theme_color_override("font_color", Fx.INK)
+		type_button.add_theme_color_override("font_hover_color", Fx.INK)
+		for state in ["normal", "hover", "pressed"]:
+			var c := Color("ffe9a8") if state == "normal" else Color("ffd966")
+			type_button.add_theme_stylebox_override(state, Fx.panel_style(c, Color.WHITE, 14, 3))
+		type_button.pressed.connect(func(): _select(i); _type_name())
+		panel.add_child(type_button)
 
 
 func _process(delta: float) -> void:
@@ -106,7 +124,7 @@ func _process(delta: float) -> void:
 	_cat.walk_amount = 0.0
 	_name_label.scale = Vector2.ONE * (1.0 + 0.03 * sin(_time * 3.0))
 	_name_label.pivot_offset = _name_label.size / 2.0
-	if Transition.is_busy():
+	if Transition.is_busy() or _typing.is_open() or PauseMenu.visible:
 		return
 	if Input.is_action_just_pressed("move_down"):
 		_select(_selected + 1)
@@ -119,6 +137,8 @@ func _process(delta: float) -> void:
 	elif Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("action"):
 		if ROWS[_selected].key in BUTTONS:
 			_activate()
+		elif ROWS[_selected].key == "prefix":
+			_type_name()
 		else:
 			_select(_selected + 1)
 
@@ -137,12 +157,26 @@ func _change(dir: int) -> void:
 		"pattern": gs.pattern_index = wrapi(gs.pattern_index + dir, 0, gs.PATTERNS.size())
 		"eyes": gs.eye_index = wrapi(gs.eye_index + dir, 0, gs.EYE_COLORS.size())
 		"fluffy": gs.fluffy = not gs.fluffy
-		"prefix": gs.prefix_index = wrapi(gs.prefix_index + dir, 0, gs.NAME_PREFIXES.size())
+		"prefix":
+			if gs.custom_prefix == "":
+				gs.prefix_index = wrapi(gs.prefix_index + dir, 0, gs.NAME_PREFIXES.size())
+			gs.custom_prefix = ""  # back to the list
 		"personality": gs.personality_index = wrapi(gs.personality_index + dir, 0, gs.PERSONALITIES.size())
 		_: return
 	Sfx.play("select", 1.0 + randf() * 0.2)
 	_cat.bounce(0.18)
 	Fx.hearts(self, Vector2(300, 400), 8)
+	_refresh()
+
+
+func _type_name() -> void:
+	_typing.ask("Type your cat's name!", false, GameState.custom_prefix)
+	var typed: String = await _typing.entered
+	if typed == "":
+		return
+	GameState.custom_prefix = typed
+	_cat.bounce(0.3)
+	Fx.confetti(self, Vector2(300, 420), 40)
 	_refresh()
 
 
