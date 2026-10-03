@@ -402,3 +402,33 @@ New kits should be born often (we ran out of kits!), and the camp should be bigg
 ### What's next:
 - A Gathering at Fourtrees with the other Clans at the full moon
 - Kits could play moss-ball with you
+
+## Session: 2026-10-04 (part 5)
+
+### What the creator asked for:
+Send out more than one patrol at a time in ThunderClan Together, and make the cats spread out
+inside and outside the camp.
+
+### What was built/changed:
+- **Lots of patrols at once**: the leader (or deputy) can now have up to 3 patrols out at the
+  same time. After sending one, you're asked "Send out another patrol?" Each patrol is named after
+  the cat leading it, like "Tigerclaw's hunting patrol is heading out!"
+- **You can watch the patrols**: they walk out of the gorse tunnel in a line and go around the
+  camp wall. Border patrols go to a special place (Fourtrees, the Owl Tree, Tallpines,
+  Sunningrocks or Snakerocks). Hunting patrols go into the forest and pounce on prey. Then they
+  come home with prey or news.
+- The task box at the top shows how many patrols are out.
+- **The camp is spread out**: every warrior and apprentice has their own spot on the sand, all
+  over the camp, so the cats aren't squished into the middle anymore.
+- **Cats out in the territory**: some cats are already out when you start, and more go out
+  every so often. They sun on Sunningrocks, hunt in the forest, look up at the Owl Tree, wave at
+  RiverClan by the river, and then walk home. Walk up to them to hear what they're doing!
+
+### What you can do now:
+- Go to the Highrock, send out a hunting patrol AND a border patrol, then follow one!
+- Explore the forest and find Clanmates out at the special places
+
+### What's next:
+- A Gathering at Fourtrees with the other Clans at the full moon
+- Kits could play moss-ball with you
+- You could choose which cats go on each patrol

@@ -15,6 +15,7 @@ extends Node2D
 ##   friend_play.gd    - things the two players do with each other (tag, races, sharing tongues)
 ##   mentor_training.gd - mentors taking their apprentices out training
 ##   nursery.gd         - new kits being born
+##   clan_outings.gd    - Clan cats going out into the territory for a while
 ## The Clan remembers its ceremonies between visits (together_clan.gd).
 
 const MAP := Rect2(0, 0, 3200, 2400)
@@ -107,6 +108,7 @@ var medicine: MedicineWork
 var play: FriendPlay
 var training: MentorTraining
 var nursery: Nursery
+var outings: ClanOutings
 
 var _cameras: Array[Camera2D] = []
 var _prompts: Array[Label] = []
@@ -141,7 +143,8 @@ func _ready() -> void:
 	play = FriendPlay.new(self)
 	training = MentorTraining.new(self)
 	nursery = Nursery.new(self)
-	for helper in [duties, medicine, play, training, nursery]:
+	outings = ClanOutings.new(self)
+	for helper in [duties, medicine, play, training, nursery, outings]:
 		add_child(helper)
 
 	world = WorldFloor.new()
@@ -172,6 +175,7 @@ func _ready() -> void:
 		if npc.get_parent() == world and not npc.has_meta("retired"):
 			settle(npc)  # apprentices find their mentors
 	update_deputy()
+	outings.start()
 
 	_make_hud()
 	_card = InfoCard.new()
@@ -230,14 +234,18 @@ func _build_camp() -> void:
 		var npc := make_clan_cat(c[0], [-1.0, 1.0].pick_random())
 		npc.position = camp_pos(c[1])
 		var area: Rect2 = c[2]
-		if area.has_area():
+		if clan.rank(c[0]) in ["warrior", "apprentice"]:
+			npc.wander_area = camp_wander_area()
+			npc.position = npc.wander_area.get_center()
+		elif area.has_area():
 			npc.wander_area = camp_area(area)
 		world.add_child(npc)
 		npcs.append(npc)
 	# Kits born in the nursery here (and the cats they grew up into)
 	for cat_name in clan.born_cats():
 		var npc := make_clan_cat(cat_name, [-1.0, 1.0].pick_random())
-		npc.position = camp_pos(RANK_AREAS.get(clan.rank(cat_name), RANK_AREAS.warrior).get_center())
+		npc.wander_area = rank_area(clan.rank(cat_name))
+		npc.position = npc.wander_area.get_center()
 		world.add_child(npc)
 		npcs.append(npc)
 	# Den cats who grew up (or became deputy) live out in camp now
@@ -245,8 +253,8 @@ func _build_camp() -> void:
 		for c in Den.DENS[key].cats:
 			if _lives_in_camp(c[0]):
 				var npc := make_clan_cat(c[0], [-1.0, 1.0].pick_random())
-				var area: Rect2 = RANK_AREAS.get(clan.rank(c[0]), RANK_AREAS.warrior)
-				npc.position = camp_pos(area.get_center())
+				npc.wander_area = rank_area(clan.rank(c[0]))
+				npc.position = npc.wander_area.get_center()
 				world.add_child(npc)
 				npcs.append(npc)
 
@@ -288,8 +296,32 @@ func settle(npc: Npc) -> void:
 				npc.wander_area = Rect2()
 				return
 	if clan.cats.has(cat_name) or cat_name == clan.deputy:
-		var area: Rect2 = RANK_AREAS.get(rank, RANK_AREAS.warrior)
-		npc.wander_area = camp_area(area)
+		if not npc.wander_area.has_point(npc.position):  # (keep their spot if they're in it)
+			npc.wander_area = rank_area(rank)
+
+
+## Where a cat of this rank hangs out in camp. Warriors and apprentices each get their own
+## spot somewhere on the open sand, so the Clan spreads out all over the camp.
+func rank_area(rank: String) -> Rect2:
+	if rank in ["warrior", "apprentice"]:
+		return camp_wander_area()
+	return camp_area(RANK_AREAS.get(rank, RANK_AREAS.warrior))
+
+
+## A random place on the camp's sand (not on a den, the Highrock or the fresh-kill pile, and
+## not in the gorse tunnel), with a little room around it to wander
+func camp_wander_area() -> Rect2:
+	var p := CAMP
+	for tries in 40:
+		var a := randf() * TAU
+		p = CAMP + Vector2(cos(a), sin(a)) * sqrt(randf()) * (CAMP_RADII - Vector2(190, 120))
+		var clear := absf(p.x - TUNNEL.x) > 120 or p.y < TUNNEL.y - 160
+		for prop in world.get_children():
+			if prop is CampProp:
+				clear = clear and not prop.footprint().grow_individual(90, 160, 90, 70).has_point(p)
+		if clear:
+			break
+	return Rect2(p - Vector2(70, 40), Vector2(140, 80))
 
 
 ## Who the deputy is: a player who is deputy in their own game, or whoever the Clan chose
@@ -654,7 +686,7 @@ func _nearest_spot(i: int) -> Dictionary:
 	var best := {}
 	var best_d := USE_DISTANCE
 	for npc in npcs:
-		if not npc.visible or (npc.has_meta("busy") and not npc.has_meta("training")):
+		if not npc.visible or (npc.has_meta("busy") and not npc.has_meta("training") and not npc.has_meta("outing")):
 			continue
 		var d := npc.talk_position().distance_to(pos)
 		if d < best_d:
@@ -753,7 +785,9 @@ func chat(i: int, npc: Npc) -> void:
 	var info: Dictionary = infos[i]
 	var cat_name: String = npc.get_meta("base", npc.npc_name)
 	var lines: Array = Story.chat_options(npc.npc_name, info.grown, info.medicine, info.leader)
-	if npc.has_meta("retired") or npc.has_meta("den_cat"):
+	if npc.has_meta("outing"):
+		lines = npc.get_meta("outing")  # what they say about the place they're visiting
+	elif npc.has_meta("retired") or npc.has_meta("den_cat"):
 		lines = Story.DEN_CHATS.get(npc.npc_name, ["Hello, {me}!"])
 	elif npc.npc_name == deputy_name():
 		lines = DEPUTY_CHATS
@@ -836,7 +870,7 @@ func hold_npc(npc: Npc) -> void:
 func release_npc(npc: Npc, go_home := true) -> void:
 	if go_home and npc.has_meta("home"):
 		await npc.walk_to(npc.get_meta("home"))
-	npc.wander_area = npc.get_meta("area", Rect2())
+	npc.set_wander(npc.get_meta("area", Rect2()))
 	npc.follow_target = npc.get_meta("following") if npc.has_meta("following") else null
 	for key in ["busy", "home", "area", "following"]:
 		npc.remove_meta(key)
@@ -852,6 +886,32 @@ func send_away(npc: Npc, seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
 	npc.visible = true
 	await npc.walk_to(TUNNEL)
+
+
+## Walk somewhere out in the territory, going around the camp's gorse wall (not through it).
+## Await it.
+func walk_route(npc: Npc, to: Vector2) -> void:
+	for p in route(npc.position, to):
+		await npc.walk_to(p)
+
+
+## The places to walk through to get from one place outside camp to another: straight there,
+## or around the outside of the gorse wall if the camp is in the way
+static func route(from: Vector2, to: Vector2) -> Array[Vector2]:
+	var path: Array[Vector2] = []
+	var blocked := false
+	for k in 21:
+		blocked = blocked or ((from.lerp(to, k / 20.0) - CAMP) / (CAMP_RADII * 1.15)).length() < 1.0
+	if blocked:
+		var ring := CAMP_RADII * 1.3
+		var start := ((from - CAMP) / CAMP_RADII).angle()
+		var turn := wrapf(((to - CAMP) / CAMP_RADII).angle() - start, -PI, PI)
+		var steps := maxi(1, ceili(absf(turn) / 0.5))
+		for k in steps + 1:
+			var a := start + turn * k / steps
+			path.append(CAMP + Vector2(cos(a) * ring.x, sin(a) * ring.y))
+	path.append(to)
+	return path
 
 
 ## A cat sleeping in a den gets up and comes out into camp (for a ceremony)
@@ -1021,6 +1081,8 @@ func update_quests() -> void:
 	var lines := ["Border markers: %d / %d" % [marked, _markers.size()], "Fresh-kill brought home: %d" % _pile_count]
 	var deputy := deputy_name()
 	lines.append("Deputy: %s" % (deputy if deputy != "" else "nobody yet!"))
+	if duties.patrols_out > 0:
+		lines.append("Patrols out: %d" % duties.patrols_out)
 	if medicine.active():
 		lines.append("Sick cats helped: %d" % medicine.healed)
 	_quest_label.text = "\n".join(lines)

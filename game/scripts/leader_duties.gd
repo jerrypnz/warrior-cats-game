@@ -12,9 +12,10 @@ const STEP_FORWARD := Vector2(700, 430)  # where a cat stands below the Highrock
 const BORDER_NEWS := ["All is quiet at the border.", "We saw a RiverClan cat catching a fish!",
 		"We found a lost kittypet and showed it the way home!", "We saw WindClan cats racing across the moor!",
 		"The scent markers are fresh and strong!"]
+const MOST_PATROLS := 3  # patrols out at the same time
 
 var t: Territory
-var _patrol_out := false
+var patrols_out := 0
 
 
 func _init(territory: Territory) -> void:
@@ -300,46 +301,87 @@ func _choose_deputy(i: int) -> void:
 
 # --- patrols -----------------------------------------------------------------------------------
 
-## The leader or deputy sends Clan cats out on a patrol. They come back with prey or news.
+## The leader or deputy sends Clan cats out on patrols (up to 3 at once). Each patrol walks out
+## into the territory together and comes back with prey or news.
 func send_patrol(i: int) -> void:
-	if _patrol_out:
-		t.say(i, "A patrol is already out. Let's wait for them to come back!", 3.0)
-		return
-	var pick: int = await t.ask(i, "Which patrol should go out?", ["Hunting patrol", "Border patrol", "Never mind"])
-	if pick < 0 or pick > 1:
-		return
-	var hunting := pick == 0
-	var cats: Array = t.camp_cats(["warrior", "apprentice"])
-	cats.shuffle()
-	cats = cats.slice(0, 3)
-	if cats.size() < 2:
-		t.say(i, "Everyone is busy! Try again in a little while.", 3.0)
-		return
-	_patrol_out = true
+	while true:
+		if patrols_out >= MOST_PATROLS:
+			t.say(i, "%d patrols are already out! Let's wait for one to come back." % patrols_out, 3.0)
+			return
+		var question := "Which patrol should go out?"
+		if patrols_out > 0:
+			question = "%d out now! Which patrol should go out next?" % patrols_out
+		var pick: int = await t.ask(i, question, ["Hunting patrol", "Border patrol", "Never mind"])
+		if pick < 0 or pick > 1:
+			return
+		var cats: Array = t.camp_cats(["warrior", "apprentice"])
+		if cats.size() < 2:
+			t.say(i, "Everyone is busy! Try again in a little while.", 3.0)
+			return
+		cats.shuffle()
+		cats = cats.slice(0, 3 if cats.size() >= 5 else 2)  # leave some cats home to guard the camp
+		_patrol(i, cats, pick == 0)
+		if patrols_out >= MOST_PATROLS or t.camp_cats(["warrior", "apprentice"]).size() < 2:
+			return
+		await get_tree().create_timer(1.0).timeout
+		var more: int = await t.ask(i, "Send out another patrol?", ["Yes!", "That's all"])
+		if more != 0:
+			return
+
+
+## One patrol: the first cat leads and the others follow in a line, out of the gorse tunnel to
+## a special place (border patrol) or a hunting spot in the forest, and back home again
+func _patrol(i: int, cats: Array, hunting: bool) -> void:
+	patrols_out += 1
+	t.update_quests()
+	var kind := "hunting" if hunting else "border"
+	var lead: Npc = cats[0]
 	var names: Array = cats.map(func(c): return c.npc_name)
 	var who := "%s and %s" % [", ".join(names.slice(0, -1)), names[-1]]
-	t.say(i, "%s: please go on a %s patrol!" % [who, "hunting" if hunting else "border"], 3.5)
-	for npc in cats:
-		Fx.speech(npc, ["On my way!", "Yes, %s!" % _me(i), "Let's go!"].pick_random(), 112 * npc.cat.size + 30, 2.0)
-	t.show_banner("The %s patrol is heading out!" % ("hunting" if hunting else "border"))
+	t.say(i, "%s: please go on a %s patrol!" % [who, kind], 3.5)
+	for k in cats.size():
+		t.hold_npc(cats[k])
+		Fx.speech(cats[k], ["On my way!", "Yes, %s!" % _me(i), "Let's go!"].pick_random(), 112 * cats[k].cat.size + 30, 2.0)
+	t.show_banner("%s's %s patrol is heading out!" % [lead.npc_name, kind])
 	await get_tree().create_timer(1.5).timeout
-	var back := [0]  # how many are home again
-	for npc in cats:
-		_patrol_trip(npc, back)
-	while back[0] < cats.size():
-		await get_tree().process_frame
+	for k in range(1, cats.size()):
+		cats[k].follow_target = cats[k - 1]  # follow the cat in front, in a line
+	await lead.walk_to(Territory.TUNNEL)
+	await lead.walk_to(Territory.OUTSIDE)
+	var where := _patrol_place(hunting)
+	await t.walk_route(lead, where)
+	if hunting:
+		for k in 3:
+			var hunter: Npc = cats.pick_random()
+			Fx.speech(hunter, ["Shh! A mouse!", "Got one!", "Pounce!", "I caught a vole!"].pick_random(),
+					112 * hunter.cat.size + 30, 1.8)
+			hunter.cat.bounce(0.4)
+			await get_tree().create_timer(2.0).timeout
+	else:
+		Fx.speech(lead, ["Let's mark the border here!", "Smells like ThunderClan!", "All clear!"].pick_random(),
+				112 * lead.cat.size + 30, 2.5)
+		await get_tree().create_timer(3.0).timeout
+	await t.walk_route(lead, Territory.OUTSIDE)
+	await lead.walk_to(Territory.TUNNEL)
+	await get_tree().create_timer(1.0).timeout  # (so the others catch up)
 	if hunting:
 		var prey := cats.size() + randi_range(1, 3)
 		t.add_to_pile(prey)
-		t.show_banner("The hunting patrol brought back %d pieces of prey!" % prey)
+		t.show_banner("%s's hunting patrol brought back %d pieces of prey!" % [lead.npc_name, prey])
 	else:
 		Sfx.play("win")
-		t.show_banner("The border patrol is back! %s" % BORDER_NEWS.pick_random())
+		t.show_banner("%s's border patrol is back! %s" % [lead.npc_name, BORDER_NEWS.pick_random()])
 	for npc in cats:
+		npc.follow_target = null
 		t.release_npc(npc)
-	_patrol_out = false
+	patrols_out -= 1
+	t.update_quests()
 
 
-func _patrol_trip(npc: Npc, back: Array) -> void:
-	await t.send_away(npc, randf_range(18.0, 24.0))
-	back[0] += 1
+## Where a patrol goes: a special place on the border, or somewhere with mice in the forest
+func _patrol_place(hunting: bool) -> Vector2:
+	if hunting:
+		var zone: Rect2 = Territory.MOUSE_ZONES.pick_random()
+		return Vector2(randf_range(zone.position.x, zone.end.x), randf_range(zone.position.y, zone.end.y))
+	var place: Array = Territory.PLACES.filter(func(p): return p[2] != Vector2.INF).pick_random()
+	return place[1] + Vector2(randf_range(-80, 80), 110)

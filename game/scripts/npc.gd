@@ -143,6 +143,12 @@ func _follow(delta: float) -> void:
 	face_toward(follow_target.global_position)
 
 
+## Wander around a new area (empty = stand still), forgetting where they were heading before
+func set_wander(area: Rect2) -> void:
+	wander_area = area
+	_target = Vector2.ZERO
+
+
 ## Walk somewhere (for cutscenes). You can "await" this.
 func walk_to(target: Vector2, walk_speed := 170.0) -> void:
 	if absf(target.x - position.x) > 5:

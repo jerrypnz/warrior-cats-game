@@ -132,8 +132,11 @@ static func speech(cat_node: Node2D, text: String, height := 130.0, seconds := 2
 	cat_node.add_child(bubble)
 	bubble.z_index = 50
 	bubble.reset_size.call_deferred()
+	var ref: WeakRef = weakref(bubble)  # (another bubble may replace this one before it's placed)
 	var place := func():
-		bubble.position = Vector2(-bubble.size.x / 2.0, -height - bubble.size.y)
+		var b := ref.get_ref() as PanelContainer
+		if b:
+			b.position = Vector2(-b.size.x / 2.0, -height - b.size.y)
 	place.call_deferred()
 	var t := bubble.create_tween()
 	t.tween_interval(seconds)
