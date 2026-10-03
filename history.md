@@ -216,3 +216,32 @@ invite someone in?
 ### What's next:
 - More two-player games: a moss-ball battle, or a race along the border
 - Explore the camp together in split screen
+
+## Session: 2026-10-03 (part 8)
+
+### What the creator asked for:
+Actually be in the camp, go on patrols and interact with things, all in one world (with two players).
+
+### What was built/changed:
+- **ThunderClan Together**: a new two-player game where the camp AND the whole territory are
+  one big world, split screen. Walk out of camp through the gorse tunnel and keep going!
+- The territory: Fourtrees with the Great Rock, the Owl Tree, Tallpines, Sunningrocks by
+  RiverClan's river, Snakerocks, and the sandy Training Hollow, with a path from the camp
+- In camp: talk to Clan cats, look at the dens (and the Leader's Den), and climb the Highrock so
+  the whole Clan cheers your name
+- **Border patrol**: mark the 5 glowing scent-marker trees together. When they're all marked,
+  "Border patrol complete!", and after a bit they need refreshing for a new patrol
+- **Hunting patrol**: catch mice in the forest, carry them home (your name shows how many) and
+  drop them on the fresh-kill pile. They go on your own cat's pile too.
+- A little map at the bottom shows where both players and the marker trees are
+- On the Play Together screen, UP/DOWN (or W/S) picks the game: ThunderClan Together or the
+  Hunting Race
+
+### What you can do now:
+- Press E on the title screen, pick your cats, choose "Explore ThunderClan Together" and go on
+  patrols together!
+
+### What's next:
+- Go inside the dens together
+- Herb gathering for medicine cats in the shared world
+- Meet a RiverClan patrol at the river

@@ -5,7 +5,6 @@ extends Node2D
 
 const MAP := Rect2(0, 0, 2400, 1500)
 const FIELD := Rect2(90, 170, 2220, 1250)  # where cats and mice can go
-const HALF := Vector2(636, 720)  # each player's half of the screen
 const CATCH_DISTANCE := 70.0
 const SCARE_DISTANCE := 115.0
 const PLAY_TIME := 75.0
@@ -32,44 +31,15 @@ func _ready() -> void:
 		return
 
 	# Two views of the same forest: the left one follows Player 1, the right one follows Player 2
-	var views: Array[SubViewport] = []
-	for i in 2:
-		var box := SubViewportContainer.new()
-		box.position = Vector2(i * (1280 - HALF.x), 0)
-		box.size = HALF
-		box.stretch = true
-		add_child(box)
-		var view := SubViewport.new()
-		view.size = Vector2i(HALF)
-		view.handle_input_locally = false
-		box.add_child(view)
-		views.append(view)
 	_world = ForestFloor.new()
 	_world.y_sort_enabled = true
-	views[0].add_child(_world)
-	views[1].world_2d = views[0].world_2d  # both views look at the same world
-
+	_cameras = SplitScreen.make(self, _world, MAP)
 	for i in 2:
-		var player := TopDownPlayer.new()
-		player.custom = _infos[i]
-		player.controls = "p%d" % (i + 1)
+		var player := SplitScreen.make_player(_infos[i], i, FIELD)
 		player.position = FIELD.get_center() + Vector2(-140 + i * 280, 200)
-		player.bounds = FIELD
-		player.speed = 270.0
-		player.can_pounce = true
-		player.frozen = true
 		_world.add_child(player)
 		_players.append(player)
-		var camera := Camera2D.new()
-		camera.limit_left = int(MAP.position.x)
-		camera.limit_top = int(MAP.position.y)
-		camera.limit_right = int(MAP.end.x)
-		camera.limit_bottom = int(MAP.end.y)
-		camera.position_smoothing_enabled = true
-		camera.position_smoothing_speed = 7.0
-		camera.position = player.position
-		views[i].add_child(camera)
-		_cameras.append(camera)
+		_cameras[i].position = player.position
 	for i in MICE:
 		_spawn_mouse(Vector2(randf_range(FIELD.position.x + 60, FIELD.end.x - 60), randf_range(FIELD.position.y + 60, FIELD.end.y - 60)))
 
@@ -89,11 +59,7 @@ func _ready() -> void:
 func _make_hud() -> void:
 	var hud := CanvasLayer.new()
 	add_child(hud)
-	var line := ColorRect.new()  # the line between the two halves
-	line.color = Fx.PINK_DARK
-	line.position = Vector2(HALF.x, 0)
-	line.size = Vector2(1280 - HALF.x * 2, 720)
-	hud.add_child(line)
+	SplitScreen.divider(hud)
 	for i in 2:
 		var label := Fx.make_label("", 30, Color("ffd966"), 8)
 		label.position = Vector2(16 + i * 660, 12)

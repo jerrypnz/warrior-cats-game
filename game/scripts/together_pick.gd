@@ -1,13 +1,20 @@
 extends Node2D
 ## Two players, one keyboard: each player picks a cat from the save slots.
 ## Player 1: LEFT/RIGHT to choose, SPACE = ready.  Player 2: A/D to choose, E = ready.
+## UP/DOWN (or W/S) picks which game to play.
 
 const SIDES := [
 	{"keys": "p1", "title": "Player 1", "help": "LEFT / RIGHT = choose\nSPACE = I'm ready!", "x": 60.0},
 	{"keys": "p2", "title": "Player 2", "help": "A / D = choose\nE = I'm ready!", "x": 680.0},
 ]
 
+## The games two players can play: [name, scene]
+const GAMES := [["Explore ThunderClan Together", "res://scenes/territory.tscn"],
+		["Hunting Race", "res://scenes/together.tscn"]]
+
 var _cats: Array = []
+var _game := 0
+var _game_label: Label
 var _choice := [0, 1]
 var _is_ready := [false, false]
 var _cards: Array[Panel] = []
@@ -33,33 +40,35 @@ func _ready() -> void:
 		var side: Dictionary = SIDES[i]
 		var card := Panel.new()
 		card.position = Vector2(side.x, 100)
-		card.size = Vector2(540, 560)
+		card.size = Vector2(540, 500)
 		ui.add_child(card)
 		_cards.append(card)
 		var title := Fx.centered_label(side.title, 36, Fx.PINK_DARK, 14, 540)
 		title.add_theme_constant_override("outline_size", 0)
 		card.add_child(title)
 		var holder := Node2D.new()
-		holder.position = Vector2(270, 330)
+		holder.position = Vector2(270, 290)
 		card.add_child(holder)
 		var cat := Cat.new()
 		cat.size = 2.0
 		holder.add_child(cat)
 		_previews.append(cat)
-		var name_label := Fx.centered_label("", 38, Fx.INK, 345, 540)
+		var name_label := Fx.centered_label("", 38, Fx.INK, 302, 540)
 		name_label.add_theme_constant_override("outline_size", 0)
 		card.add_child(name_label)
 		_names.append(name_label)
 		var help := Fx.ink_label(side.help, 24)
-		help.position = Vector2(0, 410)
+		help.position = Vector2(0, 360)
 		help.size = Vector2(540, 70)
 		help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		card.add_child(help)
-		var state := Fx.centered_label("", 34, Color("3f9e4a"), 490, 540)
+		var state := Fx.centered_label("", 34, Color("3f9e4a"), 438, 540)
 		state.add_theme_constant_override("outline_size", 0)
 		card.add_child(state)
 		_states.append(state)
-	ui.add_child(Fx.centered_label("Pick different cats, then BOTH press your ready key!", 24, Color("fff6ec"), 676))
+	_game_label = Fx.centered_label("", 34, Color("ffd966"), 612)
+	ui.add_child(_game_label)
+	ui.add_child(Fx.centered_label("UP/DOWN or W/S = pick a game.  Then BOTH press your ready key!", 24, Color("fff6ec"), 670))
 	_refresh()
 
 
@@ -74,7 +83,11 @@ func _process(delta: float) -> void:
 		return
 	for i in 2:
 		var keys: String = SIDES[i].keys
-		if Input.is_action_just_pressed(keys + "_left"):
+		if Input.is_action_just_pressed(keys + "_up") or Input.is_action_just_pressed(keys + "_down"):
+			_game = wrapi(_game + 1, 0, GAMES.size())
+			Sfx.play("select")
+			_refresh()
+		elif Input.is_action_just_pressed(keys + "_left"):
 			_move(i, -1)
 		elif Input.is_action_just_pressed(keys + "_right"):
 			_move(i, 1)
@@ -106,6 +119,7 @@ func _move(i: int, dir: int) -> void:
 
 
 func _refresh() -> void:
+	_game_label.text = "<  Game: %s  >" % GAMES[_game][0]
 	for i in 2:
 		var info: Dictionary = _cats[_choice[i]]
 		_previews[i].set_look(info.look)
@@ -122,7 +136,7 @@ func _start() -> void:
 	Sfx.play("win")
 	GameState.together = [_cats[_choice[0]].slot, _cats[_choice[1]].slot]
 	await get_tree().create_timer(0.6).timeout
-	Transition.go("res://scenes/together.tscn")
+	Transition.go(GAMES[_game][1])
 
 
 func _draw() -> void:
