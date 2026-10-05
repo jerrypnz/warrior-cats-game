@@ -13,8 +13,8 @@ menu. Player 2 uses WASD and E.
 
 ## Play it
 
-- **In your browser:** the web version is published on this repository's GitHub Pages site.
-  Saves are kept in your browser.
+- **In your browser:** <https://jerrypnz.github.io/warrior-cats-game/> (works best on a
+  computer with a keyboard). Saves are kept in your browser.
 - **Download:** Windows, macOS and Linux versions are on the
   [Releases](../../releases/latest) page. Unzip and run, nothing else to install.
   - macOS: the app isn't notarized by Apple, so the first time, right-click it → Open
