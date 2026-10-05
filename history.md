@@ -432,3 +432,21 @@ inside and outside the camp.
 - A Gathering at Fourtrees with the other Clans at the full moon
 - Kits could play moss-ball with you
 - You could choose which cats go on each patrol
+
+## Session: 2026-10-05
+
+### What the creator asked for:
+A grown-up helper asked for a way to share the game with everyone: on the web, and as
+apps for Windows, Mac and Linux computers.
+
+### What was built/changed:
+- A packing tool (`tools/export_game.py`) that turns the game into ready-to-play packages
+  for the web, Windows, Mac and Linux — nobody needs Godot to play them
+- The web version can be put on a GitHub page automatically
+- No changes to the game itself
+
+### What you can do now:
+- Share the game with friends and family so they can play it on their own computers
+
+### What's next:
+- Draw a Warrior Cats icon for the game (right now it shows "VG")

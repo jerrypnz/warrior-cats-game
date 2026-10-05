@@ -27,3 +27,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Packaged builds made by tools/export_game.py
+dist/

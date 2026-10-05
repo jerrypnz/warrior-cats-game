@@ -104,19 +104,46 @@ won't be as locked-in as with the launcher script.
 3. The kid presses Play in the Godot editor to test
 4. Repeat!
 
-## Setting Up HTML5 Export (Optional, for Sharing)
+## Packaging the Game for Sharing (Web, Windows, macOS, Linux)
 
-To let kids share their games in a web browser:
+`tools/export_game.py` turns the game into packages that run without Godot, one zip
+per platform in `dist/`:
 
-1. In Godot, go to Editor > Manage Export Templates
-2. Click "Download and Install" to get the export templates
-3. Export with Project > Export > Web (the preset is already set up), or ask Claude to
+| Package | What's inside |
+|---|---|
+| `warrior-cats-web.zip` | HTML5 version — upload to itch.io or any static web host |
+| `warrior-cats-windows.zip` | A single 64-bit `.exe` |
+| `warrior-cats-macos.zip` | `Warrior Cats.app`, runs on Intel and Apple Silicon Macs |
+| `warrior-cats-linux.zip` | A single x86_64 program |
 
-The export is a folder of files (HTML, JavaScript, WebAssembly). It has to be served
-over http — double-clicking `index.html` won't work. To try it locally:
-`cd game/export/web && python3 -m http.server`, then open http://localhost:8000.
-To share it, upload the folder to itch.io or any static web host. The preset has
-threads turned off, so no special server configuration is needed.
+```
+python3 tools/export_game.py              # every platform
+python3 tools/export_game.py web windows  # just some
+python3 tools/export_game.py web --serve  # build, then play at http://localhost:8000
+```
+
+The first run downloads the Godot export templates it needs (only those files, not the
+whole 1.2 GB bundle). The unpacked builds stay in `game/export/<platform>/`.
+
+Things players should know:
+- **Web**: it has to be served over http, so double-clicking `index.html` won't work.
+  The preset has threads turned off, so no special server configuration is needed.
+  Saves live in the browser.
+- **macOS**: the app isn't notarized by Apple, so the first launch is blocked. Right-click
+  the app → Open (or System Settings → Privacy & Security → Open Anyway).
+- **Windows**: SmartScreen may warn about an unknown publisher → "More info" → "Run anyway".
+
+### Publishing on GitHub
+
+Two workflows in `.github/workflows/` use the same tool:
+- `pages.yml` checks the game runs, then publishes the web version to GitHub Pages on
+  every push. One-time setup: Settings → Pages → Source = **GitHub Actions**.
+- `release.yml` builds all four packages when you push a tag (`git tag v1.0 && git push
+  origin v1.0`) and attaches them to a GitHub Release. Stable file names mean links like
+  `https://github.com/<you>/<repo>/releases/latest/download/warrior-cats-windows.zip`
+  always point at the newest version.
+
+Both pin the Godot version (`GODOT_VERSION`); bump it when you update the Godot editor.
 
 ## Tips for Supervising
 

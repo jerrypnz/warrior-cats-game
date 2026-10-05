@@ -1,0 +1,44 @@
+# Builds the game for every platform. Pushing a tag like v1.0 publishes the packages as a
+# GitHub Release; running it by hand (Actions tab) just keeps them as a downloadable artifact.
+name: Release packages
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.6.3-stable  # keep in step with the Godot editor used to make the game
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot-builds/releases/download/$GODOT_VERSION/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          echo "GODOT=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Check the game runs
+        run: python3 tools/check_game.py
+
+      - name: Export every platform
+        run: python3 tools/export_game.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warrior-cats-packages
+          path: dist/*.zip
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "Warrior Cats $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
