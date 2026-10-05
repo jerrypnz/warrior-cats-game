@@ -449,4 +449,23 @@ apps for Windows, Mac and Linux computers.
 - Share the game with friends and family so they can play it on their own computers
 
 ### What's next:
-- Draw a Warrior Cats icon for the game (right now it shows "VG")
+- Make a Warrior Cats icon for the game (right now it shows "VG")
+
+## Session: 2026-10-05 (part 2)
+
+### What the creator asked for:
+A grown-up helper tidied up the project folder so it's all about Warrior Cats.
+
+### What was built/changed:
+- A new way to start: `kids-vibe-code` opens the game in Godot and starts your game-making
+  buddy, all at once
+- Removed the drawing tool and the starter game ideas, because this game doesn't use them
+- A new README page that tells everyone about the game
+- No changes to the game itself
+
+### What you can do now:
+- Start your game-making buddy and keep building Warrior Cats!
+
+### What's next:
+- Make a Warrior Cats icon for the game (right now it shows "VG")
+- A Gathering at Fourtrees with the other Clans at the full moon

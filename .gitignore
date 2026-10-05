@@ -2,13 +2,7 @@
 game/.godot/
 game/export/
 
-# Photos of drawings can carry the camera's GPS location and kids often write
-# their name on the page, so keep the originals out of git. The processed
-# sprites in game/assets/sprites/ are clean and are committed.
-my-drawings/*
-!my-drawings/.gitkeep
-
-# Screenshots and previews made by the tools
+# Screenshots made by tools/check_game.py
 .previews/
 
 # Claude Code personal settings

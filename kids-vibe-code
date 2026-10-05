@@ -1,0 +1,31 @@
+#!/bin/bash
+# Kids Vibe Code: opens the game in Godot and starts Claude as a friendly game-making buddy.
+#
+#   ./kids-vibe-code
+#
+# Grown-ups: just run `claude` here for a normal session.
+#
+# Kid mode runs Claude in safe mode, so the grown-up's own Claude setup on this computer
+# (personal CLAUDE.md, skills, plugins, hooks, MCP servers) stays out of the kid's session.
+# Safe mode skips this project's CLAUDE.md too, so it's passed in along with the persona.
+
+cd "$(dirname "$0")" || exit 1
+
+if ! command -v claude >/dev/null 2>&1; then
+    echo "Claude Code isn't installed (the 'claude' command wasn't found)."
+    exit 1
+fi
+
+# Open the game in the Godot editor so the Play button is ready, unless it's open already
+GODOT="${GODOT:-$(command -v godot || command -v godot4)}"
+if [ -z "$GODOT" ] && [ -x /Applications/Godot.app/Contents/MacOS/Godot ]; then
+    GODOT=/Applications/Godot.app/Contents/MacOS/Godot
+fi
+if [ -n "$GODOT" ] && ! pgrep -f -- "--path $PWD/game" >/dev/null; then
+    nohup "$GODOT" --path "$PWD/game" --editor >/dev/null 2>&1 &
+fi
+
+exec claude --safe-mode \
+    --settings tools/kids/settings.json \
+    --append-system-prompt "$(cat CLAUDE.md; echo; cat tools/kids/persona.md)" \
+    "Hi! Let's work on the game."
